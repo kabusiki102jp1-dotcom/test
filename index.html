@@ -1,22 +1,36 @@
+```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="菱井点検">
 <meta name="theme-color" content="#1a73e8">
 <title>菱井工業 点検記録アプリ</title>
-<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='30' fill='%231a73e8'/><text x='90' y='115' font-size='80' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'>菱</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif; background: #f0f2f5; color: #222; font-size: 14px; }
-body { padding-bottom: 90px; }
-header { background: #1a73e8; color: #fff; padding: 10px 14px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.15); display: flex; justify-content: space-between; align-items: center; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+html, body { margin: 0; padding: 0; font-family: "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif; background: #f0f2f5; color: #222; font-size: 14px; }
+body { padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
+header { background: #1a73e8; color: #fff; padding: 10px 14px; padding-top: calc(10px + env(safe-area-inset-top)); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.15); display: flex; justify-content: space-between; align-items: center; }
 header h1 { margin: 0; font-size: 16px; font-weight: 600; }
 header .menu-btn { background: rgba(255,255,255,0.2); color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; }
-.tabs { display: flex; background: #fff; border-bottom: 1px solid #ddd; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+#offline-banner { display: none; background: #f39c12; color: #fff; text-align: center; padding: 6px; font-size: 12px; font-weight: 600; }
+#offline-banner.show { display: block; }
+#install-banner { display: none; background: #fff; border-bottom: 1px solid #ddd; padding: 8px 12px; align-items: center; gap: 10px; }
+#install-banner.show { display: flex; }
+#install-banner .banner-icon { width: 36px; height: 36px; background: #1a73e8; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; flex-shrink: 0; }
+#install-banner .banner-text { flex: 1; font-size: 12px; line-height: 1.4; }
+#install-banner .banner-text strong { font-size: 13px; display: block; }
+#install-banner .btn-install { background: #1a73e8; color: #fff; border: none; padding: 7px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+#install-banner .btn-dismiss { background: none; border: none; color: #888; font-size: 20px; cursor: pointer; padding: 4px; }
+.tabs { display: flex; background: #fff; border-bottom: 1px solid #ddd; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
 .tab { flex-shrink: 0; padding: 10px 16px; cursor: pointer; border-bottom: 3px solid transparent; font-size: 13px; }
 .tab.active { color: #1a73e8; border-bottom-color: #1a73e8; font-weight: 600; }
 .section { padding: 12px; display: none; }
@@ -25,18 +39,49 @@ header .menu-btn { background: rgba(255,255,255,0.2); color: #fff; border: none;
 .card h2 { margin: 0 0 10px 0; font-size: 14px; color: #1a73e8; border-bottom: 1px solid #eee; padding-bottom: 6px; }
 .form-row { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto auto; gap: 8px; margin-bottom: 8px; align-items: center; }
 .form-row label { font-size: 13px; color: #555; font-weight: 500; min-width: 0; }
-.form-row input[type=text], .form-row input[type=date], .form-row input[type=number], .form-row select, .form-row textarea { width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; background: #fff; }
-.form-row textarea { resize: vertical; min-height: 72px; line-height: 1.5; font-family: inherit; }
-.form-row input:focus, .form-row select:focus, .form-row textarea:focus { outline: 2px solid #1a73e8; border-color: #1a73e8; }
-.form-row .voice-mini { background: #1a73e8; color: #fff; border: none; width: 40px; height: 36px; padding: 0; border-radius: 6px; cursor: pointer; font-size: 18px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+.form-row input[type=text], .form-row input[type=date], .form-row input[type=number], .form-row select { width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; background: #fff; -webkit-appearance: none; appearance: none; }
+.form-row input:focus, .form-row select:focus { outline: 2px solid #1a73e8; border-color: #1a73e8; }
+.form-row .voice-mini { background: #1a73e8; color: #fff; border: none; width: 40px; height: 36px; padding: 0; border-radius: 6px; cursor: pointer; font-size: 18px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .form-row .voice-mini.listening { background: #d93025; animation: pulse 1.2s infinite; }
+.form-row .voice-mini.unsupported { background: #aaa; cursor: not-allowed; }
+.kubun-row { grid-template-columns: 110px minmax(0,1fr) auto; }
 .checkbox-row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
-.checkbox-row label { flex: none; }
-.form-row .full-field { grid-column: 2 / -1; }
-.calc-group { background:#f0f7ff; padding:8px; border-radius:6px; margin-top:10px; margin-bottom:8px; }
-.calc-group .form-row:last-child { margin-bottom: 0; }
-.ratio-row { grid-template-columns: 110px auto auto minmax(0, 1fr); }
-.unit { flex: 0 0 auto; white-space: nowrap; }
+
+/* ===== 補足欄 ===== */
+.remarks-block {
+  margin-top: 10px;
+  border-top: 1px dashed #ccc;
+  padding-top: 10px;
+}
+.remarks-block .remarks-label {
+  font-size: 12px; font-weight: 700; color: #555; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px;
+}
+.remarks-row {
+  display: flex; gap: 8px; align-items: flex-start;
+}
+.remarks-row textarea {
+  flex: 1; min-height: 72px; padding: 8px 10px;
+  border: 1px solid #ccc; border-radius: 6px; font-size: 13px;
+  font-family: inherit; resize: vertical; line-height: 1.5;
+  background: #fafafa;
+}
+.remarks-row textarea:focus { outline: 2px solid #1a73e8; border-color: #1a73e8; background: #fff; }
+.remarks-row .voice-mini { margin-top: 2px; }
+
+/* 機器選択ボックス */
+.equip-select-box { border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; border: 2px solid #1a73e8; background: #e8f4fd; }
+.equip-select-box.green { border-color: #34a853; background: #e8f8f0; }
+.equip-select-box .esb-title { font-size: 12px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.equip-select-box .esb-title .esb-range { font-size: 10px; font-weight: 400; background: #fff; border-radius: 10px; padding: 1px 7px; color: #555; border: 1px solid #ccc; }
+.esb-opts { display: flex; gap: 8px; flex-wrap: wrap; }
+.esb-opt { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; cursor: pointer; padding: 6px 14px; border-radius: 20px; border: 1.5px solid #1a73e8; background: #fff; color: #1a73e8; user-select: none; transition: background 0.15s, color 0.15s; white-space: nowrap; }
+.equip-select-box.green .esb-opt { border-color: #34a853; color: #34a853; }
+.esb-opt input[type=radio] { display: none; }
+.esb-opt.active { background: #1a73e8; color: #fff; }
+.equip-select-box.green .esb-opt.active { background: #34a853; color: #fff; }
+
+/* テーブル */
 table.items { width: 100%; border-collapse: collapse; font-size: 12px; }
 table.items th { background: #f1f3f4; font-weight: 600; padding: 6px 4px; border: 1px solid #ddd; }
 table.items td { border: 1px solid #ddd; padding: 4px; vertical-align: middle; }
@@ -48,116 +93,111 @@ table.items td.desc { font-size: 12px; line-height: 1.35; }
 table.items td.result { text-align: center; width: 50px; }
 table.items tr.highlight td { background: #fff3cd !important; }
 table.items input.measure-input { width: 64px; padding: 3px 5px; border: 1px solid #1a73e8; border-radius: 4px; font-size: 12px; margin-left: 6px; text-align: right; }
-.result-display { font-size: 22px; font-weight: bold; cursor: pointer; padding: 2px; border-radius: 4px; min-width: 40px; display: inline-block; }
-.result-display:hover { background: #e8f0fe; }
-.result-maru { color: #1a8e3a; }
-.result-sankaku { color: #f39c12; }
-.result-shuri { color: #d93025; }
-.result-batsu { color: #c00; }
-.result-shochi { color: #6f42c1; }
-.result-naashi { color: #888; }
-.result-check { color: #1a8e3a; }
-.summary-card { background: #fff; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-.summary-card h2 { margin: 0 0 10px 0; font-size: 14px; color: #1a73e8; border-bottom: 1px solid #eee; padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
-.summary-toggle { font-size: 12px; color: #1a73e8; cursor: pointer; background: none; border: none; padding: 0; }
-.summary-counts { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-.summary-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 13px; font-weight: 600; }
-.badge-maru    { background: #e8f5e9; color: #1a8e3a; }
-.badge-sankaku { background: #fff8e1; color: #f39c12; }
-.badge-shuri   { background: #ffeaea; color: #d93025; }
-.badge-batsu   { background: #fce4e4; color: #c00; }
-.badge-shochi  { background: #f3e8ff; color: #6f42c1; }
-.badge-naashi  { background: #f5f5f5; color: #888; }
-.summary-list { list-style: none; padding: 0; margin: 0; }
-.summary-list li { padding: 5px 8px; border-radius: 4px; margin-bottom: 4px; font-size: 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
-.summary-list li:hover { background: #f0f7ff; }
-.summary-list li .s-sym { font-size: 16px; font-weight: bold; min-width: 20px; text-align: center; }
-.summary-list li .s-no  { color: #888; font-size: 11px; min-width: 28px; }
-.summary-list li .s-desc { flex: 1; color: #333; }
-.summary-empty { color: #888; font-size: 13px; text-align: center; padding: 8px 0; }
-.tawami-warn { color: #d93025; font-weight: 700; font-size: 12px; margin-top: 4px; padding: 4px 8px; background: #ffeaea; border-radius: 4px; display: none; }
-.tawami-ok   { color: #1a8e3a; font-weight: 700; font-size: 12px; margin-top: 4px; padding: 4px 8px; background: #e8f5e9; border-radius: 4px; display: none; }
-.remarks-row { grid-template-columns: 110px minmax(0,1fr) auto; }
-.voice-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #ddd; padding: 10px 12px; display: flex; gap: 8px; align-items: center; box-shadow: 0 -2px 6px rgba(0,0,0,0.08); z-index: 50; }
-.voice-bar .mic-btn { background: #1a73e8; color: #fff; border: none; width: 56px; height: 56px; border-radius: 50%; font-size: 26px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+.result-display { font-size: 22px; font-weight: bold; cursor: pointer; padding: 2px; border-radius: 4px; min-width: 40px; display: inline-block; min-height: 36px; line-height: 36px; }
+.result-maru { color: #1a8e3a; } .result-sankaku { color: #f39c12; }
+.result-shuri { color: #d93025; } .result-batsu { color: #c00; }
+.result-shochi { color: #6f42c1; } .result-naashi { color: #888; }
+
+/* サマリー */
+.summary-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 12px; }
+.summary-badge { text-align: center; border-radius: 8px; padding: 8px 4px; border: 1px solid #eee; }
+.summary-badge .sym { font-size: 22px; font-weight: bold; display: block; }
+.summary-badge .cnt { font-size: 18px; font-weight: 700; display: block; }
+.summary-badge .lbl { font-size: 10px; color: #666; display: block; }
+.alert-list { list-style: none; padding: 0; margin: 0; }
+.alert-list li { padding: 6px 10px; border-radius: 6px; margin-bottom: 4px; font-size: 12px; display: flex; gap: 8px; align-items: center; }
+.alert-list li .no-badge { background: #e8f0fe; color: #1a73e8; border-radius: 4px; padding: 1px 5px; font-size: 11px; font-weight: 700; flex: 0 0 auto; }
+.alert-list li .detail { flex: 1; }
+.alert-bg-sankaku { background: #fff8e6; } .alert-bg-shuri { background: #fdecea; }
+.alert-bg-batsu { background: #fce8e8; } .alert-bg-shochi { background: #f3eeff; }
+
+/* 写真 */
+.camera-actions { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.camera-actions button { flex: 1; min-width: 100px; padding: 14px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; min-height: 48px; }
+.btn-camera { background: #1a73e8; color: #fff; } .btn-gallery { background: #34a853; color: #fff; }
+.btn-upload { background: #fff; color: #1a73e8; border: 1px solid #1a73e8 !important; }
+.photo-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; }
+.photo-item { position: relative; border-radius: 8px; overflow: hidden; background: #f1f3f4; aspect-ratio: 4/3; }
+.photo-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-item .photo-caption { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.55); color: #fff; font-size: 11px; padding: 3px 6px; }
+.photo-item .photo-del { position: absolute; top: 4px; right: 4px; background: rgba(217,48,37,0.85); color: #fff; border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.photo-item .photo-caption-edit { width: 100%; background: transparent; border: none; color: #fff; font-size: 11px; outline: none; }
+.photo-empty { text-align: center; color: #aaa; padding: 32px 0; font-size: 13px; }
+
+/* 年次 */
+.calc-group { background:#f0f7ff; padding:8px; border-radius:6px; margin-top:10px; margin-bottom:8px; }
+.ratio-row { grid-template-columns: 110px auto auto minmax(0, 1fr); }
+.unit { flex: 0 0 auto; white-space: nowrap; }
+.ratio-display { font-weight: 600; color: #1a73e8; padding: 4px 8px; background: #e8f0fe; border-radius: 4px; font-size: 13px; }
+
+/* フッター音声バー */
+.voice-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #ddd; padding: 10px 12px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); display: flex; gap: 8px; align-items: center; box-shadow: 0 -2px 6px rgba(0,0,0,0.08); z-index: 50; }
+.voice-bar .mic-btn { background: #1a73e8; color: #fff; border: none; width: 56px; height: 56px; border-radius: 50%; font-size: 26px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); flex-shrink: 0; }
 .voice-bar .mic-btn.listening { background: #d93025; animation: pulse 1.2s infinite; }
-.voice-bar .voice-status { flex: 1; padding: 8px 12px; background: #f1f3f4; border-radius: 8px; font-size: 13px; min-height: 40px; display: flex; flex-direction: column; justify-content: center; }
-.voice-bar .voice-status .heard { color: #555; font-size: 11px; }
+.voice-bar .mic-btn.unsupported { background: #aaa; cursor: not-allowed; }
+.voice-bar .voice-status { flex: 1; padding: 8px 12px; background: #f1f3f4; border-radius: 8px; font-size: 13px; min-height: 40px; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+.voice-bar .voice-status .heard { color: #555; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .voice-bar .voice-status .parsed { color: #1a8e3a; font-weight: 600; font-size: 13px; }
-@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+.voice-unsupported-note { background: #fff8e1; border: 1px solid #ffb300; border-radius: 6px; padding: 8px 12px; font-size: 12px; color: #555; margin-bottom: 8px; display: none; }
+.voice-unsupported-note.show { display: block; }
+@keyframes pulse { 0%,100%{transform:scale(1);}50%{transform:scale(1.08);} }
+
+/* ツールバー・その他 */
 .toolbar { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 12px 12px; }
-.toolbar button { flex: 1; min-width: 120px; background: #fff; color: #1a73e8; border: 1px solid #1a73e8; padding: 10px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; }
+.toolbar button { flex: 1; min-width: 120px; background: #fff; color: #1a73e8; border: 1px solid #1a73e8; padding: 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; min-height: 44px; }
 .toolbar button.primary { background: #1a73e8; color: #fff; }
 .toolbar button.danger { background: #fff; color: #d93025; border-color: #d93025; }
 .help-box { background: #fff8e1; border-left: 4px solid #ffb300; padding: 10px 12px; margin-bottom: 12px; border-radius: 4px; font-size: 12px; line-height: 1.6; }
 .help-box strong { color: #e65100; }
 .list-saved { list-style: none; padding: 0; margin: 0; }
-.list-saved li { padding: 10px 12px; background: #fff; border-radius: 6px; margin-bottom: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.list-saved li .info { flex: 1; }
-.list-saved li .info .title { font-weight: 600; font-size: 13px; }
+.list-saved li { padding: 10px 12px; background: #fff; border-radius: 6px; margin-bottom: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.list-saved li .info { flex: 1; min-width: 0; }
+.list-saved li .info .title { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .list-saved li .info .sub { font-size: 11px; color: #666; }
-.list-saved li button { padding: 6px 10px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; background: #1a73e8; color: #fff; }
-.list-saved li button.del { background: #d93025; }
+.list-saved li .actions { display: flex; gap: 4px; flex-shrink: 0; }
+.list-saved li button { padding: 8px 12px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; background: #1a73e8; color: #fff; min-height: 36px; }
+.list-saved li button.del { background: #d93025; } .list-saved li button.exp { background: #34a853; }
 .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
 .modal-bg.show { display: flex; }
 .modal { background: #fff; border-radius: 10px; padding: 16px; max-width: 360px; width: 100%; }
 .modal h3 { margin: 0 0 12px 0; font-size: 15px; }
 .modal .opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
-.modal .opts button { padding: 12px 4px; border: 1px solid #ccc; background: #fff; border-radius: 6px; font-size: 22px; cursor: pointer; }
-.modal .opts button:hover { background: #f0f7ff; border-color: #1a73e8; }
-.modal .close { width: 100%; padding: 8px; border: none; background: #ccc; border-radius: 6px; cursor: pointer; }
-.ratio-display { font-weight: 600; color: #1a73e8; padding: 4px 8px; background: #e8f0fe; border-radius: 4px; font-size: 13px; }
-.offline-banner { display: none; background: #f39c12; color: #fff; text-align: center; font-size: 12px; padding: 4px 8px; position: sticky; top: 50px; z-index: 99; }
-.offline-banner.show { display: block; }
-
-/* ─── 写真添付 ─── */
-.photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
-.photo-cell { position: relative; aspect-ratio: 1; border-radius: 6px; overflow: hidden; background: #f1f3f4; border: 1px solid #ddd; }
-.photo-cell img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: pointer; }
-.photo-cell .photo-del { position: absolute; top: 3px; right: 3px; background: rgba(217,48,37,0.85); color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
-.photo-cell .photo-caption-wrap { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.45); padding: 2px 4px; }
-.photo-cell .photo-caption { font-size: 9px; color: #fff; width: 100%; border: none; background: transparent; outline: none; padding: 0; }
-.photo-add-btn { aspect-ratio: 1; border-radius: 6px; border: 2px dashed #1a73e8; background: #f0f7ff; color: #1a73e8; font-size: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 100%; }
-.photo-add-btn:active { background: #e8f0fe; }
-.photo-limit { font-size: 11px; color: #888; margin-bottom: 6px; }
-.photo-storage-warn { font-size: 11px; color: #f39c12; margin-top: 4px; display: none; }
-
-/* ─── 写真プレビューモーダル ─── */
-.photo-preview-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 300; align-items: center; justify-content: center; padding: 16px; }
-.photo-preview-bg.show { display: flex; }
-.photo-preview-bg img { max-width: 100%; max-height: 80vh; border-radius: 6px; object-fit: contain; }
-.photo-preview-bg .close-preview { position: absolute; top: 12px; right: 16px; background: none; border: none; color: #fff; font-size: 32px; cursor: pointer; line-height: 1; }
+.modal .opts button { padding: 16px 4px; border: 1px solid #ccc; background: #fff; border-radius: 6px; font-size: 26px; cursor: pointer; min-height: 60px; }
+.modal .opts button:active { background: #f0f7ff; border-color: #1a73e8; }
+.modal .close { width: 100%; padding: 12px; border: none; background: #ccc; border-radius: 6px; cursor: pointer; font-size: 14px; }
+select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23555' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px !important; }
 
 @media print {
-  body { background: #fff; padding: 0; font-size: 11px; }
-  header, .tabs, .voice-bar, .toolbar, .help-box, .section:not(.active), .no-print { display: none !important; }
-  .section.active { display: block !important; padding: 0; }
-  .card { box-shadow: none; border: 1px solid #999; padding: 6px; margin-bottom: 6px; page-break-inside: avoid; }
-  .card h2 { font-size: 13px; }
-  table.items { font-size: 10px; }
-  table.items td { padding: 2px; }
-  .form-row .voice-mini { display: none; }
-  .form-row label { font-size: 10px; flex: 0 0 90px; }
-  .form-row input { border: none; border-bottom: 1px solid #999; border-radius: 0; padding: 2px; }
-  table.items input.measure-input { border: none; border-bottom: 1px solid #666; border-radius: 0; }
-  @page { size: A4; margin: 10mm; }
+  body { background:#fff; padding:0; }
+  header,.tabs,.voice-bar,.toolbar,.help-box,#install-banner,#offline-banner,.section:not(.active),.no-print { display:none!important; }
+  .section.active { display:block!important; padding:0; }
+  .card { box-shadow:none; border:1px solid #999; padding:6px; margin-bottom:6px; page-break-inside:avoid; }
+  table.items { font-size:10px; }
+  table.items td { padding:2px; }
+  .form-row .voice-mini { display:none; }
+  .form-row input { border:none; border-bottom:1px solid #999; border-radius:0; padding:2px; }
+  @page { size:A4; margin:10mm; }
 }
-@media (max-width: 420px) {
-  .section { padding: 10px; }
-  .card { padding: 10px; }
-  .form-row { grid-template-columns: 88px minmax(0, 1fr) auto auto; gap: 6px; }
-  .form-row label { font-size: 12px; }
-  .form-row .voice-mini { width: 38px; }
-  .ratio-row { grid-template-columns: 88px auto auto minmax(0, 1fr); }
-  .checkbox-row { gap: 10px; }
-  .checkbox-row input[type=text] { min-width: 100%; }
-  .photo-grid { grid-template-columns: repeat(3, 1fr); }
+@media (max-width:420px) {
+  .section { padding:10px; } .card { padding:10px; }
+  .form-row { grid-template-columns:88px minmax(0,1fr) auto auto; gap:6px; }
+  .ratio-row { grid-template-columns:88px auto auto minmax(0,1fr); }
+  .kubun-row { grid-template-columns:88px minmax(0,1fr) auto; }
+  .summary-grid { grid-template-columns:repeat(2,1fr); }
+  .esb-opts { gap:6px; }
+  .esb-opt { padding:5px 10px; font-size:12px; }
 }
 </style>
 </head>
 <body>
 
-<div class="offline-banner" id="offline-banner">⚠️ オフラインモードで動作中（保存済みデータは使用可能）</div>
+<div id="offline-banner">📵 オフラインモードで動作中</div>
+<div id="install-banner">
+  <div class="banner-icon">菱</div>
+  <div class="banner-text"><strong>ホーム画面に追加</strong>アプリとしてオフラインでも使えます</div>
+  <button class="btn-install" id="btn-install">追加</button>
+  <button class="btn-dismiss" id="btn-dismiss">✕</button>
+</div>
 
 <header>
   <h1>菱井工業 点検記録</h1>
@@ -166,23 +206,30 @@ table.items input.measure-input { width: 64px; padding: 3px 5px; border: 1px sol
 
 <div class="tabs">
   <div class="tab active" data-tab="form">点検入力</div>
-  <div class="tab" data-tab="summary">サマリー</div>
+  <div class="tab" data-tab="photo">📷 写真</div>
   <div class="tab" data-tab="saved">保存済み</div>
   <div class="tab" data-tab="settings">設定</div>
 </div>
 
+<!-- ========== 点検入力タブ ========== -->
 <div class="section active" id="tab-form">
+  <div class="voice-unsupported-note" id="voice-note">⚠️ このブラウザは音声認識非対応です。<strong>Google Chrome</strong> をお使いください。</div>
+
   <div class="card">
     <h2>顧客情報</h2>
-    <div class="form-row"><label>顧客名</label><input type="text" id="f-customer" placeholder="例：○○製作所" autocomplete="off"><button class="voice-mini" data-voice="f-customer">🎤</button></div>
+    <div class="form-row"><label>顧客名</label><input type="text" id="f-customer" placeholder="例：○○製作所" autocomplete="off" autocorrect="off" autocapitalize="off"><button class="voice-mini" data-voice="f-customer">🎤</button></div>
     <div class="form-row"><label>設置場所</label><input type="text" id="f-location" placeholder="工場・棟など" autocomplete="off"><button class="voice-mini" data-voice="f-location">🎤</button></div>
-    <div class="form-row"><label>担当者</label><input type="text" id="f-staff" placeholder="例：松江" autocomplete="off"><button class="voice-mini" data-voice="f-staff">🎤</button></div>
+    <div class="form-row"><label>クレーンNo.</label><input type="text" id="f-staff" placeholder="例：1号機" autocomplete="off"><button class="voice-mini" data-voice="f-staff">🎤</button></div>
     <div class="form-row"><label>点検日</label><input type="date" id="f-date"></div>
-    <div class="form-row checkbox-row">
+    <div class="form-row kubun-row">
       <label>点検区分</label>
-      <label><input type="checkbox" id="f-monthly"> 月例</label>
-      <label><input type="checkbox" id="f-annual"> 年次</label>
-      <input type="text" id="f-class-month" placeholder="今月の点検区分（例：4・AとBとCと年次点検）" style="flex:1; min-width:200px;">
+      <select id="f-class-month">
+        <option value="">― 選択 ―</option>
+        <option value="A">A</option>
+        <option value="ABC">ABC</option>
+        <option value="ABC＋年次">ABC＋年次</option>
+      </select>
+      <button class="voice-mini" id="voice-kubun-btn">🎤</button>
     </div>
   </div>
 
@@ -195,73 +242,111 @@ table.items input.measure-input { width: 64px; padding: 3px 5px; border: 1px sol
     <div class="form-row"><label>サドル形式・機番</label><input type="text" id="f-saddle" autocomplete="off"><button class="voice-mini" data-voice="f-saddle">🎤</button></div>
     <div class="form-row"><label>検査証番号</label><input type="text" id="f-cert-no" autocomplete="off"><button class="voice-mini" data-voice="f-cert-no">🎤</button></div>
     <div class="form-row">
-      <label>検査証期限</label>
-      <input type="date" id="f-cert-exp">
-      <label style="flex:0 0 auto;"><input type="checkbox" id="f-cert-check"> 検査証確認 ☑</label>
+      <label>検査証期限</label><input type="date" id="f-cert-exp">
+      <label style="flex:0 0 auto;font-size:12px;"><input type="checkbox" id="f-cert-check"> 確認☑</label>
     </div>
     <div class="form-row"><label>ワイヤー取替日</label><input type="date" id="f-wire-date"></div>
   </div>
 
   <div class="card">
+    <h2>点検者</h2>
+    <div class="form-row"><label>点検者 1</label><input type="text" id="f-inspector1" placeholder="氏名" autocomplete="off"><button class="voice-mini" data-voice="f-inspector1">🎤</button></div>
+    <div class="form-row"><label>点検者 2</label><input type="text" id="f-inspector2" placeholder="氏名" autocomplete="off"><button class="voice-mini" data-voice="f-inspector2">🎤</button></div>
+    <div class="form-row"><label>点検者 3</label><input type="text" id="f-inspector3" placeholder="氏名" autocomplete="off"><button class="voice-mini" data-voice="f-inspector3">🎤</button></div>
+  </div>
+
+  <div class="card">
     <h2>点検項目（記号：○良好 △要注意 ▲要修理 ×不良 Ⓧ処置済 ／該当なし）</h2>
-    <div class="help-box no-print">
-      音声コマンド例：「<strong>5は黒</strong>」→▲、「<strong>10ばつ</strong>」→×、「<strong>12処置済</strong>」→Ⓧ、「<strong>15該当なし</strong>」→／、「<strong>外れ止めバツ</strong>」→該当項目を×。<br>
-      「<strong>摩耗12.5</strong>」→6番の摩耗計測値を 12.5mm に。項目をタップすると手動で変更できます。
+
+    <div class="equip-select-box no-print">
+      <div class="esb-title" style="color:#1a73e8;">
+        📻 No.1〜4 の機器を選択
+        <span class="esb-range">3択</span>
+      </div>
+      <div class="esb-opts">
+        <label class="esb-opt active" id="esb-musen-both">
+          <input type="radio" name="esb-musen" value="both" checked onchange="onMusenChange(this.value)">
+          無線機 ＋ 押釦SW
+        </label>
+        <label class="esb-opt" id="esb-musen-musen">
+          <input type="radio" name="esb-musen" value="musen" onchange="onMusenChange(this.value)">
+          無線機のみ
+        </label>
+        <label class="esb-opt" id="esb-musen-oshibtn">
+          <input type="radio" name="esb-musen" value="oshibtn" onchange="onMusenChange(this.value)">
+          押釦SWのみ
+        </label>
+      </div>
     </div>
-    <div style="overflow-x:auto;"><table class="items" id="items-table"></table></div>
+
+    <div class="equip-select-box green no-print">
+      <div class="esb-title" style="color:#34a853;">
+        🔗 No.5〜8 の機器を選択
+        <span class="esb-range">2択</span>
+      </div>
+      <div class="esb-opts">
+        <label class="esb-opt active" id="esb-rope-wire">
+          <input type="radio" name="esb-rope" value="wire" checked onchange="onRopeChange(this.value)">
+          ワイヤーロープ
+        </label>
+        <label class="esb-opt" id="esb-rope-chain">
+          <input type="radio" name="esb-rope" value="chain" onchange="onRopeChange(this.value)">
+          チェーン
+        </label>
+      </div>
+    </div>
+
+    <div class="help-box no-print">
+      音声コマンド例：「<strong>5は黒</strong>」→▲、「<strong>10ばつ</strong>」→×、「<strong>12処置済</strong>」→Ⓧ、「<strong>15該当なし</strong>」→／<br>
+      「<strong>摩耗12.5</strong>」→6番の摩耗計測値 12.5mm。項目をタップすると手動変更できます。
+    </div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <table class="items" id="items-table"></table>
+    </div>
+
+    <!-- ★ 補足欄 ★ -->
+    <div class="remarks-block">
+      <div class="remarks-label">
+        📝 点検項目 補足・特記事項
+        <span style="font-size:11px;font-weight:400;color:#888;">（音声入力可・PDF補足欄に反映）</span>
+      </div>
+      <div class="remarks-row">
+        <textarea id="f-items-remarks" placeholder="例：No.13 フック摩耗量 0.3mm 次回要確認&#10;例：No.17 ライニング残量 2mm 交換時期近し"></textarea>
+        <button class="voice-mini" id="voice-items-remarks-btn" style="flex-shrink:0;">🎤</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="summary-card">
+    <h2>📊 点検結果サマリー</h2>
+    <div class="summary-grid" id="summary-grid"></div>
+    <div id="summary-alert-area"></div>
   </div>
 
   <div class="card" id="annual-card">
     <h2>年次点検記入欄</h2>
-    <div style="font-size:12px; font-weight:600; color:#555; padding:4px 0 2px; border-bottom:1px solid #eee; margin-bottom:6px;">絶縁抵抗</div>
-    <div class="form-row"><label>巻上下</label><input type="number" step="any" id="f-ann-makiage-zetuen" placeholder="0.0"><span style="flex:0 0 auto;">MΩ</span><button class="voice-mini" data-voice="f-ann-makiage-zetuen">🎤</button></div>
-    <div class="form-row"><label>横行</label><input type="number" step="any" id="f-ann-oko-zetuen" placeholder="0.0"><span style="flex:0 0 auto;">MΩ</span><button class="voice-mini" data-voice="f-ann-oko-zetuen">🎤</button></div>
-    <div class="form-row"><label>走行</label><input type="number" step="any" id="f-ann-soko-zetuen" placeholder="0.0"><span style="flex:0 0 auto;">MΩ</span><button class="voice-mini" data-voice="f-ann-soko-zetuen">🎤</button></div>
-    <div class="form-row"><label>電源・操作</label><input type="number" step="any" id="f-ann-dengen-zetuen" placeholder="0.0"><span style="flex:0 0 auto;">MΩ</span><button class="voice-mini" data-voice="f-ann-dengen-zetuen">🎤</button></div>
-    <div style="font-size:12px; font-weight:600; color:#555; padding:4px 0 2px; border-bottom:1px solid #eee; margin:10px 0 6px;">無負荷電流</div>
-    <div class="form-row"><label>上下</label><input type="number" step="any" id="f-ann-makiage-denryu" placeholder="0.0"><span style="flex:0 0 auto;">A</span><button class="voice-mini" data-voice="f-ann-makiage-denryu">🎤</button></div>
-    <div class="form-row"><label>横行</label><input type="number" step="any" id="f-ann-oko-denryu" placeholder="0.0"><span style="flex:0 0 auto;">A</span><button class="voice-mini" data-voice="f-ann-oko-denryu">🎤</button></div>
-    <div class="form-row"><label>走行</label><input type="number" step="any" id="f-ann-soko-denryu" placeholder="0.0"><span style="flex:0 0 auto;">A</span><button class="voice-mini" data-voice="f-ann-soko-denryu">🎤</button></div>
+    <div style="font-size:12px;font-weight:600;color:#555;padding:4px 0 2px;border-bottom:1px solid #eee;margin-bottom:6px;">絶縁抵抗</div>
+    <div class="form-row"><label>巻上下</label><input type="number" step="any" inputmode="decimal" id="f-ann-makiage-zetuen" placeholder="0.0"><span style="flex:0 0 auto;">MΩ</span><button class="voice-mini" data-voice="f-ann-makiage-zetuen">🎤</button></div>
+    <div class="form-row"><label>横行</label><input type="number" step="any" inputmode="decimal" id="f-ann-oko-zetuen" placeholder="0.0"><span style="flex:0 0 auto;">MΩ</span><button class="voice-mini" data-voice="f-ann-oko-zetuen">🎤</button></div>
+    <div class="form-row"><label>走行</label><input type="number" step="any" inputmode="decimal" id="f-ann-soko-zetuen" placeholder="0.0"><span style="flex:0 0 auto;">MΩ</span><button class="voice-mini" data-voice="f-ann-soko-zetuen">🎤</button></div>
+    <div class="form-row"><label>電源・操作</label><input type="number" step="any" inputmode="decimal" id="f-ann-dengen-zetuen" placeholder="0.0"><span style="flex:0 0 auto;">MΩ</span><button class="voice-mini" data-voice="f-ann-dengen-zetuen">🎤</button></div>
+    <div style="font-size:12px;font-weight:600;color:#555;padding:4px 0 2px;border-bottom:1px solid #eee;margin:10px 0 6px;">無負荷電流</div>
+    <div class="form-row"><label>上下</label><input type="number" step="any" inputmode="decimal" id="f-ann-makiage-denryu" placeholder="0.0"><span style="flex:0 0 auto;">A</span><button class="voice-mini" data-voice="f-ann-makiage-denryu">🎤</button></div>
+    <div class="form-row"><label>横行</label><input type="number" step="any" inputmode="decimal" id="f-ann-oko-denryu" placeholder="0.0"><span style="flex:0 0 auto;">A</span><button class="voice-mini" data-voice="f-ann-oko-denryu">🎤</button></div>
+    <div class="form-row"><label>走行</label><input type="number" step="any" inputmode="decimal" id="f-ann-soko-denryu" placeholder="0.0"><span style="flex:0 0 auto;">A</span><button class="voice-mini" data-voice="f-ann-soko-denryu">🎤</button></div>
     <div class="calc-group">
-      <div class="form-row"><label>タワミ</label><input type="number" step="any" id="f-ann-tawami" placeholder="例: 10"><span class="unit">mm</span><button class="voice-mini" data-voice="f-ann-tawami">🎤</button></div>
-      <div class="form-row"><label>スパン</label><input type="number" step="any" id="f-ann-span" placeholder="例: 10000"><span class="unit">mm</span><button class="voice-mini" data-voice="f-ann-span">🎤</button></div>
+      <div class="form-row"><label>タワミ</label><input type="number" step="any" inputmode="decimal" id="f-ann-tawami" placeholder="例: 10"><span class="unit">mm</span><button class="voice-mini" data-voice="f-ann-tawami">🎤</button></div>
+      <div class="form-row"><label>スパン</label><input type="number" step="any" inputmode="decimal" id="f-ann-span" placeholder="例: 10000"><span class="unit">mm</span><button class="voice-mini" data-voice="f-ann-span">🎤</button></div>
       <div class="form-row ratio-row">
-        <label>タワミ比</label>
-        <span style="font-weight:600;">→</span>
+        <label>タワミ比</label><span style="font-weight:600;">→</span>
         <span class="ratio-display">1/<span id="f-ann-tawami-ratio-display">―</span></span>
-        <label style="font-size:11px; color:#666;">以下</label>
+        <label style="font-size:11px;color:#666;">以下</label>
         <input type="hidden" id="f-ann-tawami-ratio">
       </div>
-      <div id="tawami-warn" class="tawami-warn">⚠️ タワミ比が基準値（1/800）を超えています！要確認</div>
-      <div id="tawami-ok" class="tawami-ok">✅ タワミ比は基準値（1/800）以内です</div>
     </div>
-    <div class="form-row"><label>横行レールゲージ</label><input type="number" step="any" id="f-ann-rail-gauge"><span class="unit">mm</span><button class="voice-mini" data-voice="f-ann-rail-gauge">🎤</button></div>
-    <div class="form-row"><label>定格荷重</label><input type="number" step="any" id="f-ann-load"><span class="unit">t</span><button class="voice-mini" data-voice="f-ann-load">🎤</button></div>
+    <div class="form-row"><label>横行レールゲージ</label><input type="number" step="any" inputmode="decimal" id="f-ann-rail-gauge"><span class="unit">mm</span><button class="voice-mini" data-voice="f-ann-rail-gauge">🎤</button></div>
+    <div class="form-row"><label>定格荷重</label><input type="number" step="any" inputmode="decimal" id="f-ann-load"><span class="unit">t</span><button class="voice-mini" data-voice="f-ann-load">🎤</button></div>
     <div class="form-row"><label>補足</label><input type="text" id="f-ann-memo" placeholder="補足事項" style="flex:1;"><button class="voice-mini" data-voice="f-ann-memo">🎤</button></div>
-  </div>
-
-  <div class="card">
-    <h2>特記事項・申し送り</h2>
-    <div class="form-row remarks-row">
-      <label>特記事項</label>
-      <textarea id="f-remarks" placeholder="要修理箇所の詳細、部品交換推奨、次回点検時の注意点など…" rows="4"></textarea>
-      <button class="voice-mini" data-voice="f-remarks" style="align-self:flex-start;">🎤</button>
-    </div>
-    <div class="form-row remarks-row">
-      <label>申し送り</label>
-      <textarea id="f-handover" placeholder="次回担当者への申し送り事項…" rows="3"></textarea>
-      <button class="voice-mini" data-voice="f-handover" style="align-self:flex-start;">🎤</button>
-    </div>
-  </div>
-
-  <!-- ─── 写真添付カード ─── -->
-  <div class="card">
-    <h2>📷 写真添付（最大5枚）</h2>
-    <p class="photo-limit" id="photo-limit-msg">0 / 5 枚　│　タップで撮影またはライブラリから選択</p>
-    <div class="photo-grid" id="photo-grid"></div>
-    <p class="photo-storage-warn" id="photo-storage-warn">⚠️ ストレージ容量が少なくなっています。古い記録を削除するか、JSONバックアップを推奨します。</p>
-    <!-- iOS: capture="environment" で背面カメラ優先、accept="image/*" でライブラリも選択可 -->
-    <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="onPhotoSelected(event)">
   </div>
 
   <div class="toolbar no-print">
@@ -272,19 +357,25 @@ table.items input.measure-input { width: 64px; padding: 3px 5px; border: 1px sol
   </div>
 </div>
 
-<div class="section" id="tab-summary">
-  <div class="summary-card">
-    <h2>点検結果サマリー <button class="summary-toggle" onclick="renderSummary()">🔄 更新</button></h2>
-    <div class="summary-counts" id="summary-counts"></div>
-    <div id="summary-progress" style="margin-bottom:10px;"></div>
-    <div id="summary-abnormal"></div>
-  </div>
-  <div class="card" style="margin-bottom:0;">
-    <h2>入力進捗</h2>
-    <div id="summary-progress-detail" style="font-size:13px; color:#555; line-height:2;"></div>
+<!-- ========== 写真タブ ========== -->
+<div class="section" id="tab-photo">
+  <div class="card">
+    <h2>📷 現場写真</h2>
+    <p style="font-size:12px;color:#666;margin:0 0 10px;">最大10枚まで添付できます。</p>
+    <div class="camera-actions no-print">
+      <button class="btn-camera" onclick="document.getElementById('camera-input').click()">📷 カメラ</button>
+      <button class="btn-gallery" onclick="document.getElementById('gallery-input').click()">🖼 ギャラリー</button>
+      <button class="btn-upload" onclick="document.getElementById('upload-input').click()">📁 ファイル</button>
+    </div>
+    <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoInput(event)">
+    <input type="file" id="gallery-input" accept="image/*" multiple style="display:none" onchange="handlePhotoInput(event)">
+    <input type="file" id="upload-input" accept="image/*" multiple style="display:none" onchange="handlePhotoInput(event)">
+    <div id="photo-grid" class="photo-grid"></div>
+    <div id="photo-empty" class="photo-empty">写真がありません</div>
   </div>
 </div>
 
+<!-- ========== 保存済みタブ ========== -->
 <div class="section" id="tab-saved">
   <div class="card">
     <h2>保存済みの点検記録</h2>
@@ -297,31 +388,38 @@ table.items input.measure-input { width: 64px; padding: 3px 5px; border: 1px sol
   </div>
 </div>
 
+<!-- ========== 設定タブ ========== -->
 <div class="section" id="tab-settings">
   <div class="card">
     <h2>音声認識設定</h2>
-    <div class="form-row"><label>言語</label><select id="set-lang"><option value="ja-JP">日本語 (ja-JP)</option></select></div>
+    <div class="form-row"><label>言語</label>
+      <select id="set-lang">
+        <option value="ja-JP">日本語 (ja-JP)</option>
+        <option value="ja">日本語 (ja) ※Android向け</option>
+      </select>
+    </div>
     <div class="form-row checkbox-row"><label><input type="checkbox" id="set-continuous" checked> 連続音声認識（推奨）</label></div>
-    <p style="font-size:12px; color:#666; line-height:1.6;">iPhone Safariで初回起動時にマイク許可を求められます。「許可」してください。<br>iPad/PCでも同じURLを開けば同じデータを使用できます。</p>
+    <div id="voice-support-info" style="font-size:12px;color:#666;padding:6px 0;line-height:1.6;"></div>
   </div>
   <div class="card">
-    <h2>同期方法</h2>
-    <p style="font-size:12px; line-height:1.7;"><strong>1.</strong> 保存済みタブ →「全件バックアップ」<br><strong>2.</strong> Google Drive等にJSONをアップ<br><strong>3.</strong> 他端末で「JSON取込み」</p>
-  </div>
-  <div class="card">
-    <h2>音声補正辞書（製造業向け）</h2>
-    <p style="font-size:12px;color:#666;margin:0 0 8px;">音声認識で誤変換された語を自動で置換します。</p>
+    <h2>音声補正辞書</h2>
+    <p style="font-size:12px;color:#666;margin:0 0 8px;">音声認識の誤変換を自動補正します。</p>
     <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;">
-      <thead><tr style="background:#f1f3f4;"><th style="padding:4px 8px;text-align:left;border:1px solid #ddd;">認識される語</th><th style="padding:4px 8px;border:1px solid #ddd;">→</th><th style="padding:4px 8px;text-align:left;border:1px solid #ddd;">補正後</th><th style="padding:4px 8px;border:1px solid #ddd;"></th></tr></thead>
+      <thead><tr style="background:#f1f3f4;">
+        <th style="padding:4px 8px;text-align:left;border:1px solid #ddd;">認識される語</th>
+        <th style="padding:4px 8px;border:1px solid #ddd;">→</th>
+        <th style="padding:4px 8px;text-align:left;border:1px solid #ddd;">補正後</th>
+        <th style="padding:4px 8px;border:1px solid #ddd;"></th>
+      </tr></thead>
       <tbody id="corrections-body"></tbody>
     </table>
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
       <input type="text" id="new-corr-from" placeholder="誤変換される語" style="flex:1;min-width:110px;padding:6px 8px;border:1px solid #ccc;border-radius:4px;font-size:13px;">
       <span style="font-weight:bold;">→</span>
       <input type="text" id="new-corr-to" placeholder="正しい語" style="flex:1;min-width:110px;padding:6px 8px;border:1px solid #ccc;border-radius:4px;font-size:13px;">
-      <button onclick="addCorrection()" style="padding:6px 12px;background:#1a73e8;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;">追加</button>
+      <button onclick="addCorrection()" style="padding:6px 12px;background:#1a73e8;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;min-height:40px;">追加</button>
     </div>
-    <button onclick="resetCorrections()" style="font-size:12px;padding:4px 10px;background:#fff;color:#888;border:1px solid #ccc;border-radius:4px;cursor:pointer;">デフォルトに戻す</button>
+    <button onclick="resetCorrections()" style="font-size:12px;padding:6px 12px;background:#fff;color:#888;border:1px solid #ccc;border-radius:4px;cursor:pointer;">デフォルトに戻す</button>
   </div>
   <div class="card">
     <h2>会社情報（印刷用）</h2>
@@ -329,7 +427,7 @@ table.items input.measure-input { width: 64px; padding: 3px 5px; border: 1px sol
     <div class="form-row"><label>本社TEL/FAX</label><input type="text" id="set-tel1" value="TEL 072-961-1565（代）／FAX 072-963-6159"></div>
     <div class="form-row"><label>関東営業所</label><input type="text" id="set-addr2" value="〒272-0024 千葉県浦安市港76番16号"></div>
     <div class="form-row"><label>九州営業所</label><input type="text" id="set-addr3" value="〒810-0075 福岡市中央区港2丁目3-13"></div>
-    <button class="primary" onclick="saveSettings()" style="margin-top:8px; padding:8px 16px;">設定を保存</button>
+    <button class="primary" onclick="saveSettings()" style="margin-top:8px;padding:10px 16px;border:none;border-radius:6px;cursor:pointer;font-size:14px;">設定を保存</button>
   </div>
 </div>
 
@@ -345,44 +443,87 @@ table.items input.measure-input { width: 64px; padding: 3px 5px; border: 1px sol
   <div class="modal">
     <h3 id="modal-title">記号を選択</h3>
     <div class="opts">
-      <button onclick="setSymbol('○')">○</button>
-      <button onclick="setSymbol('△')">△</button>
-      <button onclick="setSymbol('▲')">▲</button>
-      <button onclick="setSymbol('×')">×</button>
-      <button onclick="setSymbol('Ⓧ')">Ⓧ</button>
-      <button onclick="setSymbol('／')">／</button>
+      <button onclick="setSymbol('○')">○</button><button onclick="setSymbol('△')">△</button>
+      <button onclick="setSymbol('▲')">▲</button><button onclick="setSymbol('×')">×</button>
+      <button onclick="setSymbol('Ⓧ')">Ⓧ</button><button onclick="setSymbol('／')">／</button>
     </div>
     <button class="close" onclick="closeModal()">キャンセル</button>
   </div>
 </div>
 
-<!-- 写真プレビューモーダル -->
-<div class="photo-preview-bg" id="photo-preview-bg" onclick="closePhotoPreview()">
-  <button class="close-preview" onclick="closePhotoPreview()">✕</button>
-  <img id="photo-preview-img" src="" alt="写真プレビュー">
-</div>
-
 <script>
 "use strict";
 
-// ─── 定数 ───
-var MAX_PHOTOS     = 5;
-var PHOTO_MAX_PX   = 800;   // リサイズ後の長辺上限(px)
-var PHOTO_QUALITY  = 0.72;  // JPEG品質
-var STORAGE_KEY    = "hishii_records_v1";
-var SETTINGS_KEY   = "hishii_settings_v1";
-var CORRECTIONS_KEY= "hishii_voice_corrections_v1";
-var TAWAMI_LIMIT   = 800;
+/* ===== 端末検出 ===== */
+var UA=navigator.userAgent||"";
+var IS_ANDROID=/Android/i.test(UA);
+var IS_IOS=/iPhone|iPad|iPod/i.test(UA);
+var IS_CHROME=/Chrome/i.test(UA)&&!/Edg/i.test(UA);
+var SPEECH_SUPPORTED=!!(window.SpeechRecognition||window.webkitSpeechRecognition);
 
-var ITEMS = [
-  {cat:"無線機",sub:"押釦スイッチ",no:1,desc:"外観、表示マーク、損傷の状態",cls:"A"},
-  {cat:"無線機",sub:"押釦スイッチ",no:2,desc:"インターロックは完全か、正常に戻るか",cls:"A"},
-  {cat:"無線機",sub:"押釦スイッチ",no:3,desc:"配線及び接地線の状態",cls:"C"},
-  {cat:"無線機",sub:"押釦スイッチ",no:4,desc:"接点の損傷、摩耗状態はどうか",cls:"C"},
-  {cat:"チェーン",sub:"ワイヤーロープ",no:5,desc:"素線切れはないか",cls:"A"},
-  {cat:"チェーン",sub:"ワイヤーロープ",no:6,desc:"摩耗の状況",cls:"A",measure:true},
-  {cat:"チェーン",sub:"ワイヤーロープ",no:7,desc:"キンク、形くずれ、腐食の有無",cls:"A"},
-  {cat:"チェーン",sub:"ワイヤーロープ",no:8,desc:"ロープエンド及びエコライザーシーブと接触する部分",cls:"B"},
+/* ===== PWA ===== */
+var deferredPrompt=null;
+window.addEventListener("beforeinstallprompt",function(e){
+  e.preventDefault();deferredPrompt=e;
+  var b=document.getElementById("install-banner");
+  if(b&&!localStorage.getItem("install-dismissed"))b.classList.add("show");
+});
+document.addEventListener("DOMContentLoaded",function(){
+  var bi=document.getElementById("btn-install");
+  var bd=document.getElementById("btn-dismiss");
+  if(bi)bi.addEventListener("click",function(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt.userChoice.then(function(){deferredPrompt=null;document.getElementById("install-banner").classList.remove("show");});});
+  if(bd)bd.addEventListener("click",function(){document.getElementById("install-banner").classList.remove("show");localStorage.setItem("install-dismissed","1");});
+});
+
+/* ===== オフライン ===== */
+function updateOnlineStatus(){var b=document.getElementById("offline-banner");if(!b)return;navigator.onLine?b.classList.remove("show"):b.classList.add("show");}
+window.addEventListener("online",updateOnlineStatus);
+window.addEventListener("offline",updateOnlineStatus);
+
+/* ===== 点検区分 ===== */
+var KUBUN_OPTIONS=[
+  {value:"A",patterns:[/^[aａ]$/i,/エー/]},
+  {value:"ABC",patterns:[/abc/i,/エービーシー/]},
+  {value:"ABC＋年次",patterns:[/abc.*年次/i,/年次.*abc/i,/エービーシー.*年次/,/年次.*エービーシー/]}
+];
+function applyKubunVoice(text){
+  var t=text.replace(/\s/g,"");
+  for(var i=0;i<KUBUN_OPTIONS.length;i++){var opt=KUBUN_OPTIONS[i];for(var j=0;j<opt.patterns.length;j++){if(opt.patterns[j].test(t)){document.getElementById("f-class-month").value=opt.value;setStatus("認識: "+text,"→ 点検区分「"+opt.value+"」");return true;}}}
+  return false;
+}
+
+/* ===== 機器選択ステート ===== */
+var equipState={musenMode:"both",ropeMode:"wire"};
+function getMusenLabel(){
+  if(equipState.musenMode==="both")  return{cat:"無線機・押釦SW",sub:"無線機・押釦スイッチ"};
+  if(equipState.musenMode==="musen") return{cat:"無線機",sub:"無線機"};
+  return{cat:"押釦SW",sub:"押釦スイッチ"};
+}
+function getRopeLabel(){
+  if(equipState.ropeMode==="wire") return{cat:"ワイヤーロープ",sub:"ワイヤーロープ"};
+  return{cat:"チェーン",sub:"チェーン"};
+}
+function onMusenChange(val){
+  equipState.musenMode=val;
+  ["both","musen","oshibtn"].forEach(function(v){var el=document.getElementById("esb-musen-"+v);if(el)el.classList.toggle("active",v===val);});
+  renderTable();
+}
+function onRopeChange(val){
+  equipState.ropeMode=val;
+  ["wire","chain"].forEach(function(v){var el=document.getElementById("esb-rope-"+v);if(el)el.classList.toggle("active",v===val);});
+  renderTable();
+}
+
+/* ===== 点検項目定義 ===== */
+var ITEMS=[
+  {cat:"無線機・押釦SW",sub:"無線機・押釦スイッチ",no:1,desc:"外観、表示マーク、損傷の状態",cls:"A",group:"musen"},
+  {cat:"無線機・押釦SW",sub:"無線機・押釦スイッチ",no:2,desc:"インターロックは完全か、正常に戻るか",cls:"A",group:"musen"},
+  {cat:"無線機・押釦SW",sub:"無線機・押釦スイッチ",no:3,desc:"配線及び接地線の状態",cls:"C",group:"musen"},
+  {cat:"無線機・押釦SW",sub:"無線機・押釦スイッチ",no:4,desc:"接点の損傷、摩耗状態はどうか",cls:"C",group:"musen"},
+  {cat:"ワイヤーロープ",sub:"ワイヤーロープ",no:5,desc:"素線切れはないか",cls:"A",group:"rope"},
+  {cat:"ワイヤーロープ",sub:"ワイヤーロープ",no:6,desc:"摩耗の状況",cls:"A",measure:true,group:"rope"},
+  {cat:"ワイヤーロープ",sub:"ワイヤーロープ",no:7,desc:"キンク、形くずれ、腐食の有無",cls:"A",group:"rope"},
+  {cat:"ワイヤーロープ",sub:"ワイヤーロープ",no:8,desc:"ロープエンド及びエコライザーシーブと接触する部分",cls:"B",group:"rope"},
   {cat:"ホイスト",sub:"フック・エコライザー",no:9,desc:"スラストベアリング回転の状況",cls:"A"},
   {cat:"ホイスト",sub:"フック・エコライザー",no:10,desc:"フック外止め金具の状態",cls:"A"},
   {cat:"ホイスト",sub:"フック・エコライザー",no:11,desc:"シーブ損傷の有無",cls:"A"},
@@ -436,356 +577,301 @@ var ITEMS = [
   {cat:"走行レール",sub:"走行レール",no:59,desc:"レールの曲り及び異常の有無",cls:"C"}
 ];
 
-var state = {
-  results:{}, measurements:{},
-  photos:[],          // [{data:base64, caption:""}]
-  currentItem:null, currentRecordId:null, currentRecordSavedAt:null
-};
-ITEMS.forEach(function(it){ state.results[it.no]="○"; });
-
-// ─── ユーティリティ ───
-function localDateString(d){ d=d||new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
-function getColorClass(sym){ if(sym==="○")return"result-maru"; if(sym==="△")return"result-sankaku"; if(sym==="▲")return"result-shuri"; if(sym==="×")return"result-batsu"; if(sym==="Ⓧ")return"result-shochi"; if(sym==="／")return"result-naashi"; if(sym==="☑")return"result-check"; return""; }
-
-// ─── 写真関連 ───
-
-// Canvas でリサイズして Base64 を返す（iOS EXIF回転も自動修正）
-function resizeImage(file, callback) {
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var img = new Image();
-    img.onload = function() {
-      var w = img.width, h = img.height;
-      // 長辺が PHOTO_MAX_PX を超える場合のみリサイズ
-      if (w > PHOTO_MAX_PX || h > PHOTO_MAX_PX) {
-        var scale = PHOTO_MAX_PX / Math.max(w, h);
-        w = Math.round(w * scale);
-        h = Math.round(h * scale);
-      }
-      var canvas = document.createElement("canvas");
-      canvas.width = w; canvas.height = h;
-      var ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, w, h);
-      callback(canvas.toDataURL("image/jpeg", PHOTO_QUALITY));
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
+function getEffectiveLabel(item){
+  if(item.group==="musen") return getMusenLabel();
+  if(item.group==="rope")  return getRopeLabel();
+  return{cat:item.cat,sub:item.sub};
 }
 
-function onPhotoSelected(e) {
-  var file = e.target.files[0];
-  e.target.value = ""; // 同じファイルを再選択できるようリセット
-  if (!file) return;
-  if (state.photos.length >= MAX_PHOTOS) {
-    alert("写真は最大" + MAX_PHOTOS + "枚までです。");
-    return;
-  }
-  if (!file.type.match(/^image\//)) {
-    alert("画像ファイルを選択してください。");
-    return;
-  }
-  resizeImage(file, function(base64) {
-    state.photos.push({ data: base64, caption: "" });
-    renderPhotoGrid();
-    checkStorageUsage();
-  });
-}
+/* ===== State ===== */
+var state={results:{},measurements:{},photos:[],itemsRemarks:"",currentItem:null,currentRecordId:null,currentRecordSavedAt:null};
+ITEMS.forEach(function(it){state.results[it.no]="○";});
 
-function renderPhotoGrid() {
-  var grid = document.getElementById("photo-grid");
-  var msg  = document.getElementById("photo-limit-msg");
-  if (!grid) return;
-  var count = state.photos.length;
-  msg.textContent = count + " / " + MAX_PHOTOS + " 枚　│　タップで撮影またはライブラリから選択";
-  var html = "";
-  state.photos.forEach(function(p, i) {
-    html += '<div class="photo-cell">' +
-      '<img src="' + p.data + '" alt="写真' + (i+1) + '" onclick="openPhotoPreview(' + i + ')">' +
-      '<button class="photo-del" onclick="deletePhoto(' + i + ')">✕</button>' +
-      '<div class="photo-caption-wrap">' +
-        '<input class="photo-caption" type="text" placeholder="メモ（任意）" ' +
-        'value="' + escAttr(p.caption) + '" ' +
-        'oninput="updateCaption(' + i + ', this.value)" ' +
-        'onclick="event.stopPropagation()">' +
-      '</div>' +
-    '</div>';
-  });
-  if (count < MAX_PHOTOS) {
-    html += '<button class="photo-add-btn" onclick="document.getElementById(\'photo-input\').click()" title="写真を追加">＋</button>';
-  }
-  grid.innerHTML = html;
-}
+/* ===== ユーティリティ ===== */
+function localDateString(d){d=d||new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function getColorClass(sym){return{"○":"result-maru","△":"result-sankaku","▲":"result-shuri","×":"result-batsu","Ⓧ":"result-shochi","／":"result-naashi"}[sym]||"";}
+function escHtml(s){return String(s||"").replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 
-function deletePhoto(i) {
-  if (!confirm("この写真を削除しますか？")) return;
-  state.photos.splice(i, 1);
-  renderPhotoGrid();
-}
-
-function updateCaption(i, val) {
-  if (state.photos[i]) state.photos[i].caption = val;
-}
-
-function openPhotoPreview(i) {
-  var p = state.photos[i];
-  if (!p) return;
-  document.getElementById("photo-preview-img").src = p.data;
-  document.getElementById("photo-preview-bg").classList.add("show");
-}
-
-function closePhotoPreview() {
-  document.getElementById("photo-preview-bg").classList.remove("show");
-  document.getElementById("photo-preview-img").src = "";
-}
-
-// LocalStorage 使用量チェック（概算）
-function checkStorageUsage() {
-  try {
-    var used = 0;
-    for (var k in localStorage) {
-      if (localStorage.hasOwnProperty(k)) used += localStorage[k].length * 2;
-    }
-    var warn = document.getElementById("photo-storage-warn");
-    // 4MB超えたら警告（iOSのLocalStorage上限は約5MB）
-    if (warn) warn.style.display = (used > 4 * 1024 * 1024) ? "block" : "none";
-  } catch(e) {}
-}
-
-function escAttr(s) {
-  return String(s||"").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-// ─── テーブル描画 ───
+/* ===== テーブル描画 ===== */
 function renderTable(){
-  var t=document.getElementById("items-table"); if(!t) return;
-  var catCounts={},subCounts={};
-  ITEMS.forEach(function(it){ catCounts[it.cat]=(catCounts[it.cat]||0)+1; var k=it.cat+">"+it.sub; subCounts[k]=(subCounts[k]||0)+1; });
+  var t=document.getElementById("items-table");
+  if(!t)return;
+  var items=ITEMS.map(function(it){var lbl=getEffectiveLabel(it);return{cat:lbl.cat,sub:lbl.sub,no:it.no,desc:it.desc,cls:it.cls,measure:it.measure,group:it.group};});
+  var catC={},subC={};
+  items.forEach(function(it){catC[it.cat]=(catC[it.cat]||0)+1;var k=it.cat+">"+it.sub;subC[k]=(subC[k]||0)+1;});
   var seenCat={},seenSub={};
   var html="<thead><tr><th>大区分</th><th>小区分</th><th>No</th><th>区分</th><th>点検項目</th><th>良否</th></tr></thead><tbody>";
-  ITEMS.forEach(function(it){
+  items.forEach(function(it){
     html+='<tr id="row-'+it.no+'">';
-    if(!seenCat[it.cat]){ seenCat[it.cat]=true; html+='<td class="cat" rowspan="'+catCounts[it.cat]+'">'+it.cat+'</td>'; }
-    var subKey=it.cat+">"+it.sub;
-    if(!seenSub[subKey]){ seenSub[subKey]=true; html+='<td class="subcat" rowspan="'+subCounts[subKey]+'">'+it.sub+'</td>'; }
+    if(!seenCat[it.cat]){seenCat[it.cat]=true;html+='<td class="cat" rowspan="'+catC[it.cat]+'">'+escHtml(it.cat)+'</td>';}
+    var sk=it.cat+">"+it.sub;
+    if(!seenSub[sk]){seenSub[sk]=true;html+='<td class="subcat" rowspan="'+subC[sk]+'">'+escHtml(it.sub)+'</td>';}
     html+='<td class="no">'+it.no+'</td><td class="cls">'+it.cls+'</td>';
-    var descCell=it.desc;
-    if(it.measure){ var measVal=state.measurements[it.no]||""; descCell+=' <input type="number" step="0.1" inputmode="decimal" class="measure-input" id="measure-'+it.no+'" data-measure-no="'+it.no+'" placeholder="00.0" value="'+measVal+'"> mm'; }
-    html+='<td class="desc">'+descCell+'</td>';
-    var sym=state.results[it.no];
-    html+='<td class="result"><span class="result-display '+getColorClass(sym)+'" data-no="'+it.no+'">'+sym+'</span></td>';
-    html+='</tr>';
+    var dc=it.desc;
+    if(it.measure){var mv=state.measurements[it.no]||"";dc+=' <input type="number" step="0.1" inputmode="decimal" class="measure-input" id="measure-'+it.no+'" data-measure-no="'+it.no+'" placeholder="00.0" value="'+escHtml(mv)+'"> mm';}
+    html+='<td class="desc">'+dc+'</td>';
+    var sym=state.results[it.no]||"○";
+    html+='<td class="result"><span class="result-display '+getColorClass(sym)+'" data-no="'+it.no+'">'+escHtml(sym)+'</span></td></tr>';
   });
-  html+="</tbody>"; t.innerHTML=html;
-  t.querySelectorAll(".result-display").forEach(function(s){ s.addEventListener("click",(function(no){ return function(){ openModal(no); }; })(parseInt(s.getAttribute("data-no")))); });
-  t.querySelectorAll(".measure-input").forEach(function(inp){ inp.addEventListener("input",(function(no){ return function(e){ state.measurements[no]=e.target.value; }; })(parseInt(inp.getAttribute("data-measure-no")))); });
+  html+="</tbody>";
+  t.innerHTML=html;
+  t.querySelectorAll(".result-display").forEach(function(s){
+    s.addEventListener("click",(function(no){return function(){openModal(no);};})(parseInt(s.getAttribute("data-no"))));
+  });
+  t.querySelectorAll(".measure-input").forEach(function(inp){
+    inp.addEventListener("input",(function(no){return function(e){state.measurements[no]=e.target.value;updateSummary();};})(parseInt(inp.getAttribute("data-measure-no"))));
+  });
+  updateSummary();
 }
 
 function setItemResult(no,sym){
   state.results[no]=sym;
   var span=document.querySelector('.result-display[data-no="'+no+'"]');
-  if(span){ span.textContent=sym; span.className="result-display "+getColorClass(sym); }
+  if(span){span.textContent=sym;span.className="result-display "+getColorClass(sym);}
   var row=document.getElementById("row-"+no);
-  if(row){ row.classList.add("highlight"); setTimeout(function(){ row.classList.remove("highlight"); },1200); row.scrollIntoView({behavior:"smooth",block:"center"}); }
+  if(row){row.classList.add("highlight");setTimeout(function(){row.classList.remove("highlight");},1200);row.scrollIntoView({behavior:"smooth",block:"center"});}
+  updateSummary();
 }
 function setItemMeasurement(no,value){
   state.measurements[no]=value;
-  var el=document.getElementById("measure-"+no); if(el) el.value=value;
+  var el=document.getElementById("measure-"+no);if(el)el.value=value;
   var row=document.getElementById("row-"+no);
-  if(row){ row.classList.add("highlight"); setTimeout(function(){ row.classList.remove("highlight"); },1200); row.scrollIntoView({behavior:"smooth",block:"center"}); }
+  if(row){row.classList.add("highlight");setTimeout(function(){row.classList.remove("highlight");},1200);row.scrollIntoView({behavior:"smooth",block:"center"});}
 }
 
-// ─── タワミ比 ───
-function updateTawamiRatio(){
-  var spanVal=parseFloat(document.getElementById("f-ann-span").value);
-  var tawamiVal=parseFloat(document.getElementById("f-ann-tawami").value);
-  var disp=document.getElementById("f-ann-tawami-ratio-display");
-  var hidden=document.getElementById("f-ann-tawami-ratio");
-  var warn=document.getElementById("tawami-warn");
-  var ok=document.getElementById("tawami-ok");
-  if(spanVal>0&&tawamiVal>0){
-    var ratio=Math.round(spanVal/tawamiVal); disp.textContent=ratio.toString(); hidden.value=ratio;
-    if(ratio<TAWAMI_LIMIT){ warn.style.display="block"; ok.style.display="none"; disp.parentElement.style.color="#d93025"; }
-    else{ warn.style.display="none"; ok.style.display="block"; disp.parentElement.style.color="#1a8e3a"; }
-  } else { disp.textContent="―"; hidden.value=""; warn.style.display="none"; ok.style.display="none"; disp.parentElement.style.color=""; }
-}
-
-// ─── サマリー ───
-function renderSummary(){
+/* ===== サマリー ===== */
+function updateSummary(){
   var counts={"○":0,"△":0,"▲":0,"×":0,"Ⓧ":0,"／":0};
-  ITEMS.forEach(function(it){ var s=state.results[it.no]; if(counts[s]!==undefined) counts[s]++; });
-  var total=ITEMS.length;
-  var badgeDefs=[{sym:"○",label:"良好",cls:"badge-maru"},{sym:"△",label:"要注意",cls:"badge-sankaku"},{sym:"▲",label:"要修理",cls:"badge-shuri"},{sym:"×",label:"不良",cls:"badge-batsu"},{sym:"Ⓧ",label:"処置済",cls:"badge-shochi"},{sym:"／",label:"該当なし",cls:"badge-naashi"}];
-  document.getElementById("summary-counts").innerHTML=badgeDefs.map(function(b){ return'<span class="summary-badge '+b.cls+'">'+b.sym+' '+b.label+' <strong>'+counts[b.sym]+'</strong></span>'; }).join("");
-  var goodCount=counts["○"]+counts["Ⓧ"]+counts["／"];
-  var goodPct=Math.round(goodCount/total*100);
-  document.getElementById("summary-progress").innerHTML='<div style="font-size:12px;color:#555;margin-bottom:4px;">良好率 <strong>'+goodPct+'%</strong>（'+goodCount+'/'+total+'）</div><div style="background:#e0e0e0;border-radius:6px;height:10px;overflow:hidden;"><div style="background:'+(goodPct>=90?'#1a8e3a':goodPct>=70?'#f39c12':'#d93025')+';width:'+goodPct+'%;height:10px;border-radius:6px;transition:width 0.4s;"></div></div>';
-  var abnormal=ITEMS.filter(function(it){ return state.results[it.no]!=="○"&&state.results[it.no]!=="／"; });
-  if(!abnormal.length){ document.getElementById("summary-abnormal").innerHTML='<p class="summary-empty">✅ 要注意・不良項目はありません</p>'; }
-  else{
-    var listHtml='<div style="font-size:13px;font-weight:600;color:#555;margin-bottom:6px;">要確認項目（'+abnormal.length+'件）</div><ul class="summary-list">';
-    abnormal.forEach(function(it){ var sym=state.results[it.no]; listHtml+='<li onclick="jumpToItem('+it.no+')"><span class="s-sym '+getColorClass(sym)+'">'+sym+'</span><span class="s-no">No.'+it.no+'</span><span class="s-desc">【'+it.cat+'】'+it.desc+'</span></li>'; });
-    listHtml+='</ul>'; document.getElementById("summary-abnormal").innerHTML=listHtml;
-  }
-  var changed=ITEMS.filter(function(it){ return state.results[it.no]!=="○"; }).length;
-  var hasMemo=document.getElementById("f-remarks").value.trim()!=="";
-  document.getElementById("summary-progress-detail").innerHTML=
-    '○以外に変更済み：<strong>'+changed+'</strong> / '+total+' 件<br>'+
-    '写真添付：<strong>'+state.photos.length+'</strong> 枚<br>'+
-    '摩耗計測値：'+(state.measurements[6]?'<strong>'+state.measurements[6]+'mm</strong> 入力済':'未入力')+'<br>'+
-    '特記事項：'+(hasMemo?'<strong>入力済</strong>':'未入力')+'<br>'+
-    '顧客名：'+(document.getElementById("f-customer").value?'<strong>入力済</strong>':'⚠️ 未入力')+'<br>'+
-    '点検日：'+(document.getElementById("f-date").value?'<strong>'+document.getElementById("f-date").value+'</strong>':'⚠️ 未入力');
+  ITEMS.forEach(function(it){var s=state.results[it.no]||"○";if(counts[s]!==undefined)counts[s]++;});
+  var bdefs=[
+    {sym:"○",label:"良好",color:"#1a8e3a",bg:"#f0faf3"},{sym:"△",label:"要注意",color:"#e67e22",bg:"#fff8e6"},
+    {sym:"▲",label:"要修理",color:"#d93025",bg:"#fdecea"},{sym:"×",label:"不良",color:"#c00",bg:"#fce8e8"},
+    {sym:"Ⓧ",label:"処置済",color:"#6f42c1",bg:"#f3eeff"},{sym:"／",label:"該当なし",color:"#888",bg:"#f5f5f5"}
+  ];
+  document.getElementById("summary-grid").innerHTML=bdefs.map(function(d){
+    return'<div class="summary-badge" style="background:'+d.bg+';border-color:'+d.color+'22;">'+
+      '<span class="sym" style="color:'+d.color+'">'+d.sym+'</span><span class="cnt" style="color:'+d.color+'">'+counts[d.sym]+'</span><span class="lbl">'+d.label+'</span></div>';
+  }).join("");
+  var alerts=ITEMS.filter(function(it){var s=state.results[it.no];return s==="△"||s==="▲"||s==="×"||s==="Ⓧ";});
+  var aa=document.getElementById("summary-alert-area");
+  if(!alerts.length){aa.innerHTML='<p style="color:#1a8e3a;font-size:13px;text-align:center;padding:8px 0;">✅ 要注意以上の項目はありません</p>';return;}
+  var bgM={"△":"alert-bg-sankaku","▲":"alert-bg-shuri","×":"alert-bg-batsu","Ⓧ":"alert-bg-shochi"};
+  var cM={"△":"#e67e22","▲":"#d93025","×":"#c00","Ⓧ":"#6f42c1"};
+  aa.innerHTML='<p style="font-size:12px;font-weight:600;color:#555;margin:0 0 6px;">要注意・不良項目一覧（'+alerts.length+'件）</p>'+
+    '<ul class="alert-list">'+alerts.map(function(it){var s=state.results[it.no];var lbl=getEffectiveLabel(it);
+      return'<li class="'+bgM[s]+'"><span class="no-badge">'+it.no+'</span><span style="font-size:18px;font-weight:bold;color:'+cM[s]+'">'+s+'</span><span class="detail"><strong>'+lbl.sub+'</strong>　'+it.desc+'</span></li>';
+    }).join("")+'</ul>';
 }
 
-function jumpToItem(no){
-  document.querySelectorAll(".tab").forEach(function(t){ t.classList.remove("active"); });
-  document.querySelectorAll(".section").forEach(function(s){ s.classList.remove("active"); });
-  document.querySelector('.tab[data-tab=form]').classList.add("active");
-  document.getElementById("tab-form").classList.add("active");
-  setTimeout(function(){ var row=document.getElementById("row-"+no); if(row) row.scrollIntoView({behavior:"smooth",block:"center"}); },200);
+/* ===== 写真管理 ===== */
+var MAX_PHOTOS=10;
+function handlePhotoInput(e){
+  var files=Array.from(e.target.files||[]);if(!files.length)return;
+  var remaining=MAX_PHOTOS-state.photos.length;
+  if(remaining<=0){alert("写真は最大"+MAX_PHOTOS+"枚までです。");e.target.value="";return;}
+  files=files.slice(0,remaining);var loaded=0;
+  files.forEach(function(file){compressImage(file,1280,0.82,function(dataUrl){state.photos.push({dataUrl:dataUrl,caption:""});loaded++;if(loaded===files.length)renderPhotoGrid();});});
+  e.target.value="";
+}
+function compressImage(file,maxWidth,quality,callback){
+  var reader=new FileReader();
+  reader.onload=function(ev){var img=new Image();img.onload=function(){var w=img.width,h=img.height;if(w>maxWidth){h=Math.round(h*maxWidth/w);w=maxWidth;}var canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;canvas.getContext("2d").drawImage(img,0,0,w,h);callback(canvas.toDataURL("image/jpeg",quality));};img.src=ev.target.result;};
+  reader.readAsDataURL(file);
+}
+function renderPhotoGrid(){
+  var grid=document.getElementById("photo-grid");var empty=document.getElementById("photo-empty");
+  if(!state.photos.length){grid.innerHTML="";empty.style.display="block";return;}
+  empty.style.display="none";
+  grid.innerHTML=state.photos.map(function(p,i){
+    return'<div class="photo-item"><img src="'+p.dataUrl+'" alt="写真'+(i+1)+'" loading="lazy"><button class="photo-del" onclick="deletePhoto('+i+')">✕</button><div class="photo-caption"><input class="photo-caption-edit" type="text" value="'+escHtml(p.caption)+'" placeholder="コメント" onchange="updateCaption('+i+',this.value)" oninput="updateCaption('+i+',this.value)"></div></div>';
+  }).join("");
+}
+function deletePhoto(i){if(!confirm("この写真を削除しますか？"))return;state.photos.splice(i,1);renderPhotoGrid();}
+function updateCaption(i,val){if(state.photos[i])state.photos[i].caption=val;}
+
+/* ===== タワミ比 ===== */
+function updateTawamiRatio(){
+  var sp=parseFloat(document.getElementById("f-ann-span").value);
+  var tw=parseFloat(document.getElementById("f-ann-tawami").value);
+  var d=document.getElementById("f-ann-tawami-ratio-display");var h=document.getElementById("f-ann-tawami-ratio");
+  if(sp>0&&tw>0){var r=Math.round(sp/tw);d.textContent=r;h.value=r;}else{d.textContent="―";h.value="";}
 }
 
-// ─── モーダル ───
-function openModal(no){ state.currentItem=no; var it=ITEMS.find(function(x){ return x.no===no; }); document.getElementById("modal-title").textContent=no+". "+(it?it.desc:""); document.getElementById("modal-bg").classList.add("show"); }
-function closeModal(){ document.getElementById("modal-bg").classList.remove("show"); state.currentItem=null; }
-function setSymbol(sym){ if(state.currentItem) setItemResult(state.currentItem,sym); closeModal(); }
+/* ===== モーダル ===== */
+function openModal(no){state.currentItem=no;var it=ITEMS.find(function(x){return x.no===no;});document.getElementById("modal-title").textContent=no+". "+(it?it.desc:"");document.getElementById("modal-bg").classList.add("show");}
+function closeModal(){document.getElementById("modal-bg").classList.remove("show");state.currentItem=null;}
+function setSymbol(sym){if(state.currentItem)setItemResult(state.currentItem,sym);closeModal();}
 
-// ─── タブ切替 ───
+/* ===== タブ ===== */
 document.querySelectorAll(".tab").forEach(function(t){
   t.addEventListener("click",function(){
-    document.querySelectorAll(".tab").forEach(function(x){ x.classList.remove("active"); });
-    document.querySelectorAll(".section").forEach(function(x){ x.classList.remove("active"); });
-    t.classList.add("active"); document.getElementById("tab-"+t.dataset.tab).classList.add("active");
-    if(t.dataset.tab==="saved")    renderSavedList();
-    if(t.dataset.tab==="settings") renderCorrectionsTable();
-    if(t.dataset.tab==="summary")  renderSummary();
+    document.querySelectorAll(".tab").forEach(function(x){x.classList.remove("active");});
+    document.querySelectorAll(".section").forEach(function(x){x.classList.remove("active");});
+    t.classList.add("active");document.getElementById("tab-"+t.dataset.tab).classList.add("active");
+    if(t.dataset.tab==="saved")renderSavedList();
+    if(t.dataset.tab==="settings")renderCorrectionsTable();
+    if(t.dataset.tab==="photo")renderPhotoGrid();
   });
 });
 
-// ─── 音声認識 ───
-var recognition=null,isListening=false,voiceTarget=null,pendingVoiceTarget;
-function resetListeningState(){ isListening=false; document.getElementById("main-mic").classList.remove("listening"); document.querySelectorAll(".voice-mini.listening").forEach(function(b){ b.classList.remove("listening"); }); }
-function initRecognition(){ var SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR){ alert("お使いのブラウザは音声認識に対応していません。"); return null; } var r=new SR(); r.lang=document.getElementById("set-lang").value||"ja-JP"; r.continuous=document.getElementById("set-continuous").checked; r.interimResults=true; r.maxAlternatives=3; return r; }
-function startMain(){ if(isListening&&recognition){ pendingVoiceTarget=(voiceTarget===null)?undefined:null; recognition.stop(); return; } voiceTarget=null; startRecognition(); }
-function startInputVoice(inputId){ if(isListening&&recognition){ pendingVoiceTarget=(voiceTarget===inputId)?undefined:inputId; recognition.stop(); return; } voiceTarget=inputId; startRecognition(); }
+/* ===== 音声認識 ===== */
+var recognition=null,isListening=false,voiceTarget=null,pendingVoiceTarget,androidRestartTimer=null;
+function initRecognition(){var SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return null;var r=new SR();r.lang=document.getElementById("set-lang").value||"ja-JP";r.continuous=document.getElementById("set-continuous").checked;r.interimResults=true;r.maxAlternatives=3;return r;}
+function setMicState(on){isListening=on;var btn=document.getElementById("main-mic");if(btn)on?btn.classList.add("listening"):btn.classList.remove("listening");if(!on){document.querySelectorAll(".voice-mini").forEach(function(b){b.classList.remove("listening");});}}
+function startMain(){if(isListening&&recognition){pendingVoiceTarget=(voiceTarget===null)?undefined:null;recognition.stop();return;}voiceTarget=null;startRecognition();}
+function startInputVoice(id){if(isListening&&recognition){pendingVoiceTarget=(voiceTarget===id)?undefined:id;recognition.stop();return;}voiceTarget=id;startRecognition();}
+function startKubunVoice(){if(isListening&&recognition){pendingVoiceTarget=(voiceTarget==="kubun")?undefined:"kubun";recognition.stop();return;}voiceTarget="kubun";startRecognition();}
+
+/* ★ 補足欄専用音声入力 ★ */
+function startRemarksVoice(){
+  if(isListening&&recognition){pendingVoiceTarget=(voiceTarget==="items-remarks")?undefined:"items-remarks";recognition.stop();return;}
+  voiceTarget="items-remarks";startRecognition();
+}
+
 function startRecognition(){
-  if(isListening&&recognition){ recognition.stop(); return; }
-  recognition=initRecognition(); if(!recognition) return;
-  recognition.onstart=function(){ isListening=true; document.getElementById("main-mic").classList.add("listening"); if(voiceTarget){ var btn=document.querySelector('.voice-mini[data-voice="'+voiceTarget+'"]'); if(btn) btn.classList.add("listening"); } setStatus("聞き取り中…",""); };
-  recognition.onerror=function(e){ setStatus("エラー: "+e.error,""); resetListeningState(); };
-  recognition.onend=function(){ resetListeningState(); if(pendingVoiceTarget!==undefined){ var nxt=pendingVoiceTarget; pendingVoiceTarget=undefined; voiceTarget=nxt; startRecognition(); } };
+  if(!SPEECH_SUPPORTED){setStatus("⚠️ 音声認識非対応","Chromeをお使いください");return;}
+  if(isListening&&recognition){recognition.stop();return;}
+  recognition=initRecognition();if(!recognition)return;
+  recognition.onstart=function(){
+    setMicState(true);
+    if(voiceTarget==="kubun") document.getElementById("voice-kubun-btn").classList.add("listening");
+    else if(voiceTarget==="items-remarks") document.getElementById("voice-items-remarks-btn").classList.add("listening");
+    else if(voiceTarget){var b=document.querySelector('.voice-mini[data-voice="'+voiceTarget+'"]');if(b)b.classList.add("listening");}
+    setStatus("聞き取り中…","");
+    if(IS_ANDROID){clearTimeout(androidRestartTimer);androidRestartTimer=setTimeout(function(){if(isListening&&recognition)recognition.stop();},30000);}
+  };
+  recognition.onerror=function(e){clearTimeout(androidRestartTimer);if(e.error==="no-speech"&&IS_ANDROID&&voiceTarget===null){setTimeout(function(){if(!isListening)startRecognition();},500);return;}setStatus("エラー: "+e.error,"");setMicState(false);};
+  recognition.onend=function(){clearTimeout(androidRestartTimer);setMicState(false);if(pendingVoiceTarget!==undefined){var nxt=pendingVoiceTarget;pendingVoiceTarget=undefined;voiceTarget=nxt;startRecognition();}};
   recognition.onresult=function(e){
     var interim="",final="";
-    for(var i=e.resultIndex;i<e.results.length;i++){ var text=e.results[i][0].transcript; if(e.results[i].isFinal) final+=text; else interim+=text; }
-    if(interim) setStatus("（聞き取り中）"+interim,"");
+    for(var i=e.resultIndex;i<e.results.length;i++){var text=e.results[i][0].transcript;if(e.results[i].isFinal)final+=text;else interim+=text;}
+    if(interim)setStatus("（聞き取り中）"+interim,"");
     if(final){
       setStatus("認識: "+final,"");
-      if(voiceTarget){
+      if(voiceTarget==="kubun"){
+        if(!applyKubunVoice(final.trim()))setStatus("認識: "+final,"（A/ABC/ABC＋年次）");
+        if(!recognition.continuous)recognition.stop();
+      } else if(voiceTarget==="items-remarks"){
+        /* ★ 補足テキストエリアへ追記 ★ */
+        var ta=document.getElementById("f-items-remarks");
+        var cor=applyVoiceCorrections(final.trim());
+        ta.value=(ta.value?(ta.value+"\n"):"")+cor;
+        state.itemsRemarks=ta.value;
+        setStatus("認識: "+final,"→ 補足欄に追記");
+        if(!recognition.continuous)recognition.stop();
+      } else if(voiceTarget){
         var el=document.getElementById(voiceTarget);
-        if(el){ if(el.type==="number"){ var norm=final.replace(/[０-９]/g,function(c){ return String.fromCharCode(c.charCodeAt(0)-0xFEE0); }); var nm=norm.match(/\d+(?:\.\d+)?/); if(nm){ el.value=nm[0]; el.dispatchEvent(new Event("input")); } } else { var corrected=applyVoiceCorrections(final.trim()); el.value=(el.value?el.value+"\n":"")+corrected; } }
-        var correctedDisplay=applyVoiceCorrections(final.trim()); var corrMsg=(correctedDisplay!==final.trim())?" ✔補正: "+final.trim()+"→"+correctedDisplay:"";
-        setStatus("認識: "+final+corrMsg,"→ "+voiceTarget+"に入力");
-        if(!recognition.continuous) recognition.stop();
-      } else { var cmds=parseVoiceCommand(final); cmds.forEach(function(c){ applyCommand(c); }); }
+        if(el){
+          if(el.type==="number"){var norm=final.replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xFEE0);});var nm=norm.match(/\d+(?:\.\d+)?/);if(nm){el.value=nm[0];el.dispatchEvent(new Event("input"));}}
+          else{var cor2=applyVoiceCorrections(final.trim());el.value=(el.value?el.value+" ":"")+cor2;}
+        }
+        setStatus("認識: "+final,"→ "+voiceTarget+"に入力");
+        if(!recognition.continuous)recognition.stop();
+      } else {
+        parseVoiceCommand(final).forEach(function(c){applyCommand(c);});
+      }
     }
   };
-  try{ recognition.start(); }catch(err){ console.error(err); resetListeningState(); }
+  try{recognition.start();}catch(err){console.error(err);setMicState(false);}
 }
-function setStatus(heard,parsed){ document.getElementById("voice-heard").textContent=heard||""; document.getElementById("voice-parsed").textContent=parsed||""; }
+function setStatus(h,p){document.getElementById("voice-heard").textContent=h||"";document.getElementById("voice-parsed").textContent=p||"";}
 
-// ─── 音声コマンド ───
-function jpToNum(text){ var m=text.match(/[0-9０-９]+/); if(m) return parseInt(m[0].replace(/[０-９]/g,function(c){ return String.fromCharCode(c.charCodeAt(0)-0xFEE0); }),10); return null; }
-function detectSymbol(text){ var lower=text.replace(/\s/g,""); if(/(処置済|処置すみ|処置|しょち|ⓧ)/.test(lower)) return"Ⓧ"; if(/(該当なし|該当無し|区分外|たいしょうがい|対象外|がいとうなし|スラッシュ|／|\/)/.test(lower)) return"／"; if(/(検査証|けんさしょう|チェック|☑)/.test(lower)) return"☑"; if(/(ばつ|バツ|×|ｘ|不良|ふりょう|エックス)/.test(lower)) return"×"; if(/(黒|くろ|要修理|ようしゅうり|▲|くろまる|くろさんかく)/.test(lower)) return"▲"; if(/(三角|さんかく|△|要注意|ようちゅうい)/.test(lower)) return"△"; if(/(まる|丸|○|良好|りょうこう|ＯＫ|オーケー)/.test(lower)) return"○"; return null; }
-var DEFAULT_VOICE_CORRECTIONS=[{from:"交換",to:"鋼管"},{from:"忠蔵",to:"鋳造"},{from:"中蔵",to:"鋳造"},{from:"成功",to:"製鋼"},{from:"単蔵",to:"鍛造"},{from:"丹蔵",to:"鍛造"},{from:"探蔵",to:"鍛造"},{from:"要接",to:"溶接"},{from:"陽接",to:"溶接"},{from:"特殊鋼管",to:"特殊鋼"},{from:"製作書",to:"製作所"},{from:"製作処",to:"製作所"},{from:"工業所",to:"工業"},{from:"好感",to:"鋼管"},{from:"好管",to:"鋼管"}];
-function getCorrections(){ try{ var s=JSON.parse(localStorage.getItem(CORRECTIONS_KEY)); if(Array.isArray(s)) return s; }catch(e){} return DEFAULT_VOICE_CORRECTIONS.slice(); }
-function setCorrections(arr){ localStorage.setItem(CORRECTIONS_KEY,JSON.stringify(arr)); }
-function applyVoiceCorrections(text){ return getCorrections().reduce(function(s,c){ return(c.from&&c.to)?s.split(c.from).join(c.to):s; },text); }
-function renderCorrectionsTable(){ var tbody=document.getElementById("corrections-body"); if(!tbody) return; var list=getCorrections(); if(!list.length){ tbody.innerHTML='<tr><td colspan="4" style="padding:8px;text-align:center;color:#888;">辞書は空です</td></tr>'; return; } tbody.innerHTML=list.map(function(c,i){ return'<tr><td style="padding:4px 8px;border-bottom:1px solid #eee;">'+c.from+'</td><td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:center;">→</td><td style="padding:4px 8px;border-bottom:1px solid #eee;font-weight:600;color:#1a73e8;">'+c.to+'</td><td style="padding:4px 8px;border-bottom:1px solid #eee;"><button onclick="removeCorrection('+i+')" style="padding:2px 8px;font-size:11px;background:#d93025;color:#fff;border:none;border-radius:3px;cursor:pointer;">削除</button></td></tr>'; }).join(""); }
-function addCorrection(){ var from=document.getElementById("new-corr-from").value.trim(); var to=document.getElementById("new-corr-to").value.trim(); if(!from||!to){ alert("補正前と補正後を両方入力してください"); return; } var list=getCorrections(); var dup=list.findIndex(function(c){ return c.from===from; }); if(dup>=0){ if(!confirm('"'+from+'" は既にあります。上書きしますか？')) return; list.splice(dup,1); } list.push({from:from,to:to}); setCorrections(list); document.getElementById("new-corr-from").value=""; document.getElementById("new-corr-to").value=""; renderCorrectionsTable(); }
-function removeCorrection(i){ var list=getCorrections(); list.splice(i,1); setCorrections(list); renderCorrectionsTable(); }
-function resetCorrections(){ if(!confirm("デフォルトの辞書に戻しますか？")) return; setCorrections(DEFAULT_VOICE_CORRECTIONS.slice()); renderCorrectionsTable(); }
-var KEYWORD_TO_NO={"無線":1,"押釦":1,"インターロック":2,"配線":3,"接点":4,"素線":5,"素線切れ":5,"キンク":7,"ロープエンド":8,"スラスト":9,"外れ止め":10,"外止め":10,"はずれどめ":10,"シーブ損傷":11,"シーブケース":12,"フック":13,"エコライザー":14,"鉄心間隙":15,"鉄心":16,"ライニング":17,"電磁接触器":18,"リミット":21,"巻上ギヤ":24,"横行ギヤ":25,"メカニカル":26,"横行ガイド":27,"横行車輪":28,"配線ケーブル":29,"メッセンジャー":30,"機内配線":31,"操作ケーブル":32,"ホイル":33,"シュー":33,"変形":34,"トロリ":35,"トロリ線":35,"がいし":36,"横行レール":40,"ガーダー":41,"ホイールギヤ":42,"走行車輪":43,"車輪軸":44,"ガイドローラー":45,"走行電動機":46,"バッファー":47,"走行ブレーキ":48,"巻上下":49,"ブレーキ":51,"横行":52,"走行":53,"斜行":54,"だ行":54,"障害物":55,"ストッパー":56,"レール摩耗":57,"ジブ":58,"レール曲り":59};
-function findItemByKeyword(text){ var keys=Object.keys(KEYWORD_TO_NO).sort(function(a,b){ return b.length-a.length; }); for(var i=0;i<keys.length;i++) if(text.indexOf(keys[i])>=0) return KEYWORD_TO_NO[keys[i]]; return null; }
-function parseVoiceCommand(rawText){
-  var text=rawText.replace(/[、。\.，,]/g," "); var parts=text.split(/\s+/).filter(function(x){ return x; }); var cmds=[];
-  var rangeMatch=rawText.match(/([0-9０-９]+)\s*(?:番)?\s*から\s*([0-9０-９]+)\s*(?:番)?\s*(?:まで)?/);
-  if(rangeMatch){ var a=parseInt(rangeMatch[1].replace(/[０-９]/g,function(c){ return String.fromCharCode(c.charCodeAt(0)-0xFEE0); })); var b=parseInt(rangeMatch[2].replace(/[０-９]/g,function(c){ return String.fromCharCode(c.charCodeAt(0)-0xFEE0); })); var sym1=detectSymbol(rawText); if(sym1&&a&&b){ for(var n=Math.min(a,b);n<=Math.max(a,b);n++) cmds.push({type:"item",no:n,sym:sym1}); return cmds; } }
-  if(/検査証/.test(rawText)) cmds.push({type:"cert-check"});
-  var symAll=detectSymbol(rawText);
-  var wearMatch=rawText.match(/摩耗[^0-9]*([0-9０-９\.]+)/);
-  if(wearMatch&&wearMatch[1]&&!symAll){ var wVal=wearMatch[1].replace(/[０-９]/g,function(c){ return String.fromCharCode(c.charCodeAt(0)-0xFEE0); }); cmds.push({type:"measure",no:6,value:wVal}); }
-  var annPatterns=[{re:/巻上[^0-9]*絶縁[^0-9]*([0-9０-９\.]+)/,target:"f-ann-makiage-zetuen"},{re:/巻上[^0-9]*電流[^0-9]*([0-9０-９\.]+)/,target:"f-ann-makiage-denryu"},{re:/横行[^0-9]*絶縁[^0-9]*([0-9０-９\.]+)/,target:"f-ann-oko-zetuen"},{re:/横行[^0-9]*電流[^0-9]*([0-9０-９\.]+)/,target:"f-ann-oko-denryu"},{re:/走行[^0-9]*絶縁[^0-9]*([0-9０-９\.]+)/,target:"f-ann-soko-zetuen"},{re:/走行[^0-9]*電流[^0-9]*([0-9０-９\.]+)/,target:"f-ann-soko-denryu"},{re:/(電源|操作)[^0-9]*絶縁[^0-9]*([0-9０-９\.]+)/,target:"f-ann-dengen-zetuen",g:2},{re:/(?:タワミ|たわみ)[^0-9]*([0-9０-９\.]+)/,target:"f-ann-tawami"},{re:/スパン[^0-9]*([0-9０-９\.]+)/,target:"f-ann-span"},{re:/レールゲージ[^0-9]*([0-9０-９\.]+)/,target:"f-ann-rail-gauge"},{re:/(定格|荷重)[^0-9]*([0-9０-９\.]+)/,target:"f-ann-load",g:2}];
-  for(var ai=0;ai<annPatterns.length;ai++){ var p=annPatterns[ai]; var am=rawText.match(p.re); if(am){ var aVal=(am[p.g||1]||"").replace(/[０-９]/g,function(c){ return String.fromCharCode(c.charCodeAt(0)-0xFEE0); }); cmds.push({type:"ann",target:p.target,value:aVal}); } }
-  for(var k=0;k<parts.length;k++){ var part=parts[k]; var pSym=detectSymbol(part); var pNum=jpToNum(part); if(pSym&&pNum) cmds.push({type:"item",no:pNum,sym:pSym}); else if(pSym){ var pNo=findItemByKeyword(part); if(pNo) cmds.push({type:"item",no:pNo,sym:pSym}); } }
-  if(cmds.filter(function(c){ return c.type==="item"; }).length===0){ var sym2=detectSymbol(rawText); var num2=jpToNum(rawText); if(sym2&&num2) cmds.push({type:"item",no:num2,sym:sym2}); else if(sym2){ var no2=findItemByKeyword(rawText); if(no2) cmds.push({type:"item",no:no2,sym:sym2}); } }
+/* ===== 音声コマンド解析 ===== */
+function jpToNum(t){var m=t.match(/[0-9０-９]+/);if(m)return parseInt(m[0].replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xFEE0);}),10);return null;}
+function detectSymbol(t){var l=t.replace(/\s/g,"");if(/(処置済|処置すみ|しょち|ⓧ)/.test(l))return"Ⓧ";if(/(該当なし|該当無し|区分外|対象外|スラッシュ|／|\/)/.test(l))return"／";if(/(ばつ|バツ|×|不良|エックス)/.test(l))return"×";if(/(黒|くろ|要修理|▲)/.test(l))return"▲";if(/(三角|さんかく|△|要注意)/.test(l))return"△";if(/(まる|丸|○|良好|オーケー)/.test(l))return"○";return null;}
+var KEYWORD_TO_NO={"無線":1,"押釦":1,"インターロック":2,"配線":3,"接点":4,"素線":5,"素線切れ":5,"キンク":7,"ロープエンド":8,"スラスト":9,"外れ止め":10,"外止め":10,"シーブ損傷":11,"シーブケース":12,"フック":13,"エコライザー":14,"鉄心間隙":15,"鉄心":16,"ライニング":17,"電磁接触器":18,"リミット":21,"巻上ギヤ":24,"横行ギヤ":25,"メカニカル":26,"横行ガイド":27,"横行車輪":28,"配線ケーブル":29,"メッセンジャー":30,"機内配線":31,"操作ケーブル":32,"ホイル":33,"シュー":33,"変形":34,"トロリ":35,"トロリ線":35,"がいし":36,"横行レール":40,"ガーダー":41,"ホイールギヤ":42,"走行車輪":43,"車輪軸":44,"ガイドローラー":45,"走行電動機":46,"バッファー":47,"走行ブレーキ":48,"巻上下":49,"ブレーキ":51,"横行":52,"走行":53,"斜行":54,"だ行":54,"障害物":55,"ストッパー":56,"レール摩耗":57,"ジブ":58,"レール曲り":59};
+function findItemByKeyword(t){var ks=Object.keys(KEYWORD_TO_NO).sort(function(a,b){return b.length-a.length;});for(var i=0;i<ks.length;i++)if(t.indexOf(ks[i])>=0)return KEYWORD_TO_NO[ks[i]];return null;}
+function parseVoiceCommand(raw){
+  var text=raw.replace(/[、。\.，,]/g," ");var parts=text.split(/\s+/).filter(function(x){return x;});var cmds=[];
+  var rm=raw.match(/([0-9０-９]+)\s*(?:番)?\s*から\s*([0-9０-９]+)\s*(?:番)?\s*(?:まで)?/);
+  if(rm){var a=parseInt(rm[1].replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xFEE0);}));var b=parseInt(rm[2].replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xFEE0);}));var s1=detectSymbol(raw);if(s1&&a&&b){for(var n=Math.min(a,b);n<=Math.max(a,b);n++)cmds.push({type:"item",no:n,sym:s1});return cmds;}}
+  if(/検査証/.test(raw))cmds.push({type:"cert-check"});
+  var wm=raw.match(/摩耗[^0-9]*([0-9０-９\.]+)/);if(wm&&wm[1]&&!detectSymbol(raw)){var wv=wm[1].replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xFEE0);});cmds.push({type:"measure",no:6,value:wv});}
+  var anns=[{re:/巻上[^0-9]*絶縁[^0-9]*([0-9０-９\.]+)/,t:"f-ann-makiage-zetuen"},{re:/巻上[^0-9]*電流[^0-9]*([0-9０-９\.]+)/,t:"f-ann-makiage-denryu"},{re:/横行[^0-9]*絶縁[^0-9]*([0-9０-９\.]+)/,t:"f-ann-oko-zetuen"},{re:/横行[^0-9]*電流[^0-9]*([0-9０-９\.]+)/,t:"f-ann-oko-denryu"},{re:/走行[^0-9]*絶縁[^0-9]*([0-9０-９\.]+)/,t:"f-ann-soko-zetuen"},{re:/走行[^0-9]*電流[^0-9]*([0-9０-９\.]+)/,t:"f-ann-soko-denryu"},{re:/(電源|操作)[^0-9]*絶縁[^0-9]*([0-9０-９\.]+)/,t:"f-ann-dengen-zetuen",g:2},{re:/(?:タワミ|たわみ)[^0-9]*([0-9０-９\.]+)/,t:"f-ann-tawami"},{re:/スパン[^0-9]*([0-9０-９\.]+)/,t:"f-ann-span"},{re:/レールゲージ[^0-9]*([0-9０-９\.]+)/,t:"f-ann-rail-gauge"},{re:/(定格|荷重)[^0-9]*([0-9０-９\.]+)/,t:"f-ann-load",g:2}];
+  anns.forEach(function(p){var m=raw.match(p.re);if(m){var val=(m[p.g||1]||"").replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xFEE0);});cmds.push({type:"ann",target:p.t,value:val});}});
+  parts.forEach(function(part){var sym=detectSymbol(part),num=jpToNum(part);if(sym&&num)cmds.push({type:"item",no:num,sym:sym});else if(sym){var no=findItemByKeyword(part);if(no)cmds.push({type:"item",no:no,sym:sym});}});
+  if(!cmds.filter(function(c){return c.type==="item";}).length){var s2=detectSymbol(raw),n2=jpToNum(raw);if(s2&&n2)cmds.push({type:"item",no:n2,sym:s2});else if(s2){var no2=findItemByKeyword(raw);if(no2)cmds.push({type:"item",no:no2,sym:s2});}}
   return cmds;
 }
 function applyCommand(c){
-  if(c.type==="item"){ if(c.no>=1&&c.no<=59){ setItemResult(c.no,c.sym); setStatus(document.getElementById("voice-heard").textContent,"→ "+c.no+"番を "+c.sym+" に変更"); } }
-  else if(c.type==="cert-check"){ document.getElementById("f-cert-check").checked=true; setStatus(document.getElementById("voice-heard").textContent,"→ 検査証確認 ☑"); }
-  else if(c.type==="measure"){ setItemMeasurement(c.no,c.value); setStatus(document.getElementById("voice-heard").textContent,"→ "+c.no+"番 摩耗 "+c.value+"mm"); }
-  else if(c.type==="ann"){ var el=document.getElementById(c.target); if(el) el.value=c.value; if(c.target==="f-ann-span"||c.target==="f-ann-tawami") updateTawamiRatio(); setStatus(document.getElementById("voice-heard").textContent,"→ "+c.target+" = "+c.value); }
+  if(c.type==="item"&&c.no>=1&&c.no<=59){setItemResult(c.no,c.sym);setStatus(document.getElementById("voice-heard").textContent,"→ "+c.no+"番を "+c.sym+" に変更");}
+  else if(c.type==="cert-check"){document.getElementById("f-cert-check").checked=true;setStatus(document.getElementById("voice-heard").textContent,"→ 検査証確認 ☑");}
+  else if(c.type==="measure"){setItemMeasurement(c.no,c.value);setStatus(document.getElementById("voice-heard").textContent,"→ "+c.no+"番 摩耗 "+c.value+"mm");}
+  else if(c.type==="ann"){var el=document.getElementById(c.target);if(el)el.value=c.value;if(c.target==="f-ann-span"||c.target==="f-ann-tawami")updateTawamiRatio();setStatus(document.getElementById("voice-heard").textContent,"→ "+c.target+" = "+c.value);}
 }
 
-// ─── ストレージ ───
-function getRecords(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]"); }catch(e){ return []; } }
-function setRecords(r){ localStorage.setItem(STORAGE_KEY,JSON.stringify(r)); }
-function recordDate(r){ if(r.date) return r.date; var d=r.saved_at?new Date(r.saved_at):new Date(); if(isNaN(d.getTime())) d=new Date(); return localDateString(d); }
+/* ===== 音声補正辞書 ===== */
+var DEFAULT_VOICE_CORRECTIONS=[{from:"交換",to:"鋼管"},{from:"忠蔵",to:"鋳造"},{from:"中蔵",to:"鋳造"},{from:"成功",to:"製鋼"},{from:"単蔵",to:"鍛造"},{from:"丹蔵",to:"鍛造"},{from:"探蔵",to:"鍛造"},{from:"要接",to:"溶接"},{from:"陽接",to:"溶接"},{from:"特殊鋼管",to:"特殊鋼"},{from:"製作書",to:"製作所"},{from:"製作処",to:"製作所"},{from:"工業所",to:"工業"},{from:"好感",to:"鋼管"},{from:"好管",to:"鋼管"}];
+var CORRECTIONS_KEY="hishii_voice_corrections_v1";
+function getCorrections(){try{var s=JSON.parse(localStorage.getItem(CORRECTIONS_KEY));if(Array.isArray(s))return s;}catch(e){}return DEFAULT_VOICE_CORRECTIONS.slice();}
+function setCorrections(a){localStorage.setItem(CORRECTIONS_KEY,JSON.stringify(a));}
+function applyVoiceCorrections(t){return getCorrections().reduce(function(s,c){return(c.from&&c.to)?s.split(c.from).join(c.to):s;},t);}
+function renderCorrectionsTable(){var tb=document.getElementById("corrections-body");if(!tb)return;var list=getCorrections();if(!list.length){tb.innerHTML='<tr><td colspan="4" style="padding:8px;text-align:center;color:#888;">辞書は空です</td></tr>';return;}tb.innerHTML=list.map(function(c,i){return'<tr><td style="padding:4px 8px;border-bottom:1px solid #eee;">'+c.from+'</td><td style="padding:4px;text-align:center;">→</td><td style="padding:4px 8px;font-weight:600;color:#1a73e8;">'+c.to+'</td><td><button onclick="removeCorrection('+i+')" style="padding:4px 10px;font-size:11px;background:#d93025;color:#fff;border:none;border-radius:3px;cursor:pointer;min-height:32px;">削除</button></td></tr>';}).join("");}
+function addCorrection(){var from=document.getElementById("new-corr-from").value.trim(),to=document.getElementById("new-corr-to").value.trim();if(!from||!to){alert("両方入力してください");return;}var list=getCorrections(),dup=list.findIndex(function(c){return c.from===from;});if(dup>=0){if(!confirm('"'+from+'"は既にあります。上書きしますか？'))return;list.splice(dup,1);}list.push({from:from,to:to});setCorrections(list);document.getElementById("new-corr-from").value="";document.getElementById("new-corr-to").value="";renderCorrectionsTable();}
+function removeCorrection(i){var l=getCorrections();l.splice(i,1);setCorrections(l);renderCorrectionsTable();}
+function resetCorrections(){if(!confirm("デフォルトに戻しますか？"))return;setCorrections(DEFAULT_VOICE_CORRECTIONS.slice());renderCorrectionsTable();}
 
-// ─── フォームデータ収集・復元（写真追加） ───
+/* ===== データ保存・読込 ===== */
+var STORAGE_KEY="hishii_records_v1",SETTINGS_KEY="hishii_settings_v1";
+function getRecords(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");}catch(e){return[];}}
+function setRecords(r){localStorage.setItem(STORAGE_KEY,JSON.stringify(r));}
+function recordDate(r){if(r.date)return r.date;var d=r.saved_at?new Date(r.saved_at):new Date();if(isNaN(d.getTime()))d=new Date();return localDateString(d);}
+
 function collectFormData(){
-  return {
-    id: state.currentRecordId||"rec-"+Date.now(),
-    saved_at: state.currentRecordSavedAt||new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    customer: document.getElementById("f-customer").value,
-    location: document.getElementById("f-location").value,
-    staff: document.getElementById("f-staff").value,
-    date: document.getElementById("f-date").value,
-    monthly: document.getElementById("f-monthly").checked,
-    annual: document.getElementById("f-annual").checked,
-    class_month: document.getElementById("f-class-month").value,
-    hoist_type: document.getElementById("f-hoist-type").value,
-    hoist_no: document.getElementById("f-hoist-no").value,
-    crane_no: document.getElementById("f-crane-no").value,
-    crane_type: document.getElementById("f-crane-type").value,
-    saddle: document.getElementById("f-saddle").value,
-    cert_no: document.getElementById("f-cert-no").value,
-    cert_exp: document.getElementById("f-cert-exp").value,
-    cert_check: document.getElementById("f-cert-check").checked,
-    wire_date: document.getElementById("f-wire-date").value,
-    results: Object.assign({},state.results),
-    measurements: Object.assign({},state.measurements),
-    photos: state.photos.slice(),   // ← 写真追加
-    remarks: document.getElementById("f-remarks").value,
-    handover: document.getElementById("f-handover").value,
+  /* 補足欄の最新値を state に同期 */
+  var ta=document.getElementById("f-items-remarks");
+  state.itemsRemarks=ta?ta.value:"";
+  return{
+    id:state.currentRecordId||"rec-"+Date.now(),
+    saved_at:state.currentRecordSavedAt||new Date().toISOString(),
+    updated_at:new Date().toISOString(),
+    customer:document.getElementById("f-customer").value,
+    location:document.getElementById("f-location").value,
+    staff:document.getElementById("f-staff").value,
+    date:document.getElementById("f-date").value,
+    class_month:document.getElementById("f-class-month").value,
+    hoist_type:document.getElementById("f-hoist-type").value,
+    hoist_no:document.getElementById("f-hoist-no").value,
+    crane_no:document.getElementById("f-crane-no").value,
+    crane_type:document.getElementById("f-crane-type").value,
+    saddle:document.getElementById("f-saddle").value,
+    cert_no:document.getElementById("f-cert-no").value,
+    cert_exp:document.getElementById("f-cert-exp").value,
+    cert_check:document.getElementById("f-cert-check").checked,
+    wire_date:document.getElementById("f-wire-date").value,
+    inspector1:document.getElementById("f-inspector1").value,
+    inspector2:document.getElementById("f-inspector2").value,
+    inspector3:document.getElementById("f-inspector3").value,
+    equip_musen:equipState.musenMode,
+    equip_rope:equipState.ropeMode,
+    results:Object.assign({},state.results),
+    measurements:Object.assign({},state.measurements),
+    items_remarks:state.itemsRemarks,
+    photos:state.photos.map(function(p){return{dataUrl:p.dataUrl,caption:p.caption};}),
     annual_data:{
-      makiage_zetuen: document.getElementById("f-ann-makiage-zetuen").value,
-      makiage_denryu: document.getElementById("f-ann-makiage-denryu").value,
-      oko_zetuen: document.getElementById("f-ann-oko-zetuen").value,
-      oko_denryu: document.getElementById("f-ann-oko-denryu").value,
-      soko_zetuen: document.getElementById("f-ann-soko-zetuen").value,
-      soko_denryu: document.getElementById("f-ann-soko-denryu").value,
-      dengen_zetuen: document.getElementById("f-ann-dengen-zetuen").value,
-      tawami: document.getElementById("f-ann-tawami").value,
-      span: document.getElementById("f-ann-span").value,
-      tawami_ratio: document.getElementById("f-ann-tawami-ratio").value,
-      rail_gauge: document.getElementById("f-ann-rail-gauge").value,
-      load: document.getElementById("f-ann-load").value,
-      memo: document.getElementById("f-ann-memo").value
+      makiage_zetuen:document.getElementById("f-ann-makiage-zetuen").value,
+      makiage_denryu:document.getElementById("f-ann-makiage-denryu").value,
+      oko_zetuen:document.getElementById("f-ann-oko-zetuen").value,
+      oko_denryu:document.getElementById("f-ann-oko-denryu").value,
+      soko_zetuen:document.getElementById("f-ann-soko-zetuen").value,
+      soko_denryu:document.getElementById("f-ann-soko-denryu").value,
+      dengen_zetuen:document.getElementById("f-ann-dengen-zetuen").value,
+      tawami:document.getElementById("f-ann-tawami").value,
+      span:document.getElementById("f-ann-span").value,
+      tawami_ratio:document.getElementById("f-ann-tawami-ratio").value,
+      rail_gauge:document.getElementById("f-ann-rail-gauge").value,
+      load:document.getElementById("f-ann-load").value,
+      memo:document.getElementById("f-ann-memo").value
     }
   };
 }
 
 function loadFormData(d){
-  state.currentRecordId=d.id||null; state.currentRecordSavedAt=d.saved_at||null;
+  state.currentRecordId=d.id||null;state.currentRecordSavedAt=d.saved_at||null;
   document.getElementById("f-customer").value=d.customer||"";
   document.getElementById("f-location").value=d.location||"";
   document.getElementById("f-staff").value=d.staff||"";
   document.getElementById("f-date").value=d.date||"";
-  document.getElementById("f-monthly").checked=!!d.monthly;
-  document.getElementById("f-annual").checked=!!d.annual;
   document.getElementById("f-class-month").value=d.class_month||"";
   document.getElementById("f-hoist-type").value=d.hoist_type||"";
   document.getElementById("f-hoist-no").value=d.hoist_no||"";
@@ -796,244 +882,306 @@ function loadFormData(d){
   document.getElementById("f-cert-exp").value=d.cert_exp||"";
   document.getElementById("f-cert-check").checked=!!d.cert_check;
   document.getElementById("f-wire-date").value=d.wire_date||"";
-  document.getElementById("f-remarks").value=d.remarks||"";
-  document.getElementById("f-handover").value=d.handover||"";
-  ITEMS.forEach(function(it){ state.results[it.no]=(d.results&&d.results[it.no])||"○"; });
+  document.getElementById("f-inspector1").value=d.inspector1||"";
+  document.getElementById("f-inspector2").value=d.inspector2||"";
+  document.getElementById("f-inspector3").value=d.inspector3||"";
+  var mMode=d.equip_musen||"both";
+  var rMode=d.equip_rope||"wire";
+  equipState.musenMode=mMode;equipState.ropeMode=rMode;
+  document.querySelector('input[name="esb-musen"][value="'+mMode+'"]').checked=true;
+  document.querySelector('input[name="esb-rope"][value="'+rMode+'"]').checked=true;
+  ["both","musen","oshibtn"].forEach(function(v){var el=document.getElementById("esb-musen-"+v);if(el)el.classList.toggle("active",v===mMode);});
+  ["wire","chain"].forEach(function(v){var el=document.getElementById("esb-rope-"+v);if(el)el.classList.toggle("active",v===rMode);});
+  ITEMS.forEach(function(it){state.results[it.no]=(d.results&&d.results[it.no])||"○";});
   state.measurements=d.measurements?Object.assign({},d.measurements):{};
-  state.photos=Array.isArray(d.photos)?d.photos.slice():[];  // ← 写真復元
-  renderPhotoGrid();
+  /* ★ 補足欄復元 ★ */
+  state.itemsRemarks=d.items_remarks||"";
+  var ta=document.getElementById("f-items-remarks");
+  if(ta)ta.value=state.itemsRemarks;
+  state.photos=Array.isArray(d.photos)?d.photos.map(function(p){return{dataUrl:p.dataUrl||"",caption:p.caption||""};}):[]; 
   var a=d.annual_data||{};
-  document.getElementById("f-ann-makiage-zetuen").value=a.makiage_zetuen||"";
-  document.getElementById("f-ann-makiage-denryu").value=a.makiage_denryu||"";
-  document.getElementById("f-ann-oko-zetuen").value=a.oko_zetuen||"";
-  document.getElementById("f-ann-oko-denryu").value=a.oko_denryu||"";
-  document.getElementById("f-ann-soko-zetuen").value=a.soko_zetuen||"";
-  document.getElementById("f-ann-soko-denryu").value=a.soko_denryu||"";
-  document.getElementById("f-ann-dengen-zetuen").value=a.dengen_zetuen||"";
-  document.getElementById("f-ann-tawami").value=a.tawami||"";
-  document.getElementById("f-ann-span").value=a.span||"";
-  document.getElementById("f-ann-tawami-ratio").value=a.tawami_ratio||"";
-  document.getElementById("f-ann-rail-gauge").value=a.rail_gauge||"";
-  document.getElementById("f-ann-load").value=a.load||"";
-  document.getElementById("f-ann-memo").value=a.memo||"";
-  renderTable(); updateTawamiRatio();
+  ["makiage_zetuen","makiage_denryu","oko_zetuen","oko_denryu","soko_zetuen","soko_denryu","dengen_zetuen","tawami","span","tawami_ratio","rail_gauge","load","memo"].forEach(function(k){
+    var el=document.getElementById("f-ann-"+k.replace(/_/g,"-"));if(el&&a[k]!==undefined)el.value=a[k];
+  });
+  renderTable();updateTawamiRatio();renderPhotoGrid();
 }
 
-// ─── 保存・リセット ───
 function saveRecord(){
   var d=collectFormData();
-  if(!d.customer&&!d.crane_no){ if(!confirm("顧客名・クレーン番号が空欄です。このまま保存しますか？")) return; }
-  var records=getRecords();
-  var idx=records.findIndex(function(r){ return r.id===d.id; });
-  if(idx>=0) records[idx]=d; else records.unshift(d);
-  try{ setRecords(records); }
-  catch(e){
-    // LocalStorage 容量オーバー時
-    alert("⚠️ 保存容量が不足しています。\n写真枚数を減らすか、古い記録を削除してから再保存してください。");
-    return;
-  }
-  state.currentRecordId=d.id; state.currentRecordSavedAt=d.saved_at;
-  checkStorageUsage();
-  alert((idx>=0?"上書き保存しました：":"保存しました：")+(d.customer||"(顧客名なし)")+" / "+(d.date||""));
+  if(!d.customer&&!d.crane_no){if(!confirm("顧客名・クレーン番号が空欄です。保存しますか？"))return;}
+  var records=getRecords();var idx=records.findIndex(function(r){return r.id===d.id;});
+  if(idx>=0)records[idx]=d;else records.unshift(d);
+  setRecords(records);state.currentRecordId=d.id;state.currentRecordSavedAt=d.saved_at;
+  alert((idx>=0?"上書き保存しました：":"保存しました：")+( d.customer||"(顧客名なし)")+" / "+(d.date||""));
 }
-
 function resetForm(){
-  if(!confirm("入力内容をすべてクリアしますか？")) return;
-  document.querySelectorAll("#tab-form input[type=text], #tab-form input[type=date], #tab-form input[type=number], #tab-form textarea").forEach(function(el){ el.value=""; });
-  document.querySelectorAll("#tab-form input[type=checkbox]").forEach(function(el){ el.checked=false; });
-  ITEMS.forEach(function(it){ state.results[it.no]="○"; });
-  state.measurements={}; state.photos=[];  // ← 写真クリア
-  state.currentRecordId=null; state.currentRecordSavedAt=null;
+  if(!confirm("入力内容をすべてクリアしますか？"))return;
+  document.querySelectorAll("input[type=text],input[type=date],input[type=number]").forEach(function(el){el.value="";});
+  document.querySelectorAll("input[type=checkbox]").forEach(function(el){el.checked=false;});
+  document.getElementById("f-class-month").value="";
+  equipState.musenMode="both";equipState.ropeMode="wire";
+  document.querySelector('input[name="esb-musen"][value="both"]').checked=true;
+  document.querySelector('input[name="esb-rope"][value="wire"]').checked=true;
+  ["both","musen","oshibtn"].forEach(function(v){var el=document.getElementById("esb-musen-"+v);if(el)el.classList.toggle("active",v==="both");});
+  ["wire","chain"].forEach(function(v){var el=document.getElementById("esb-rope-"+v);if(el)el.classList.toggle("active",v==="wire");});
+  ITEMS.forEach(function(it){state.results[it.no]="○";});
+  state.measurements={};state.photos=[];state.itemsRemarks="";
+  state.currentRecordId=null;state.currentRecordSavedAt=null;
+  var ta=document.getElementById("f-items-remarks");if(ta)ta.value="";
   document.getElementById("f-date").value=localDateString();
-  renderTable(); updateTawamiRatio(); renderPhotoGrid();
+  renderTable();updateTawamiRatio();renderPhotoGrid();
 }
 
-// ─── 保存済みリスト ───
 function renderSavedList(){
-  var list=document.getElementById("saved-list");
-  var records=getRecords();
-  if(!records.length){ list.innerHTML='<li style="text-align:center; color:#888;">保存済みの記録はありません</li>'; return; }
+  var list=document.getElementById("saved-list");var records=getRecords();
+  if(!records.length){list.innerHTML='<li style="text-align:center;color:#888;">保存済みの記録はありません</li>';return;}
   list.innerHTML=records.map(function(r){
-    var abnCnt=ITEMS.filter(function(it){ return r.results&&r.results[it.no]&&r.results[it.no]!=="○"&&r.results[it.no]!=="／"; }).length;
-    var badge=abnCnt>0?'<span style="background:#fce4e4;color:#c00;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:4px;">要確認 '+abnCnt+'件</span>':"";
-    var photoBadge=(r.photos&&r.photos.length)?'<span style="background:#e8f5e9;color:#1a8e3a;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:4px;">📷'+r.photos.length+'枚</span>':"";
-    return'<li><div class="info"><div class="title">'+(r.customer||"(顧客名なし)")+" "+(r.crane_no?"/"+r.crane_no:"")+badge+photoBadge+'</div>'+
-      '<div class="sub">'+recordDate(r)+" "+(r.staff?"/ "+r.staff:"")+" "+(r.annual?"年次":"")+(r.monthly?"月例":"")+'</div></div>'+
-      '<button onclick="loadRecord(\''+r.id+'\')">開く</button>'+
-      '<button onclick="exportOne(\''+r.id+'\')">⬇</button>'+
-      '<button class="del" onclick="deleteRecord(\''+r.id+'\')">削除</button></li>';
+    var pm=r.photos&&r.photos.length?"📷"+r.photos.length+" ":"";
+    return'<li><div class="info"><div class="title">'+escHtml(r.customer||"(顧客名なし)")+(r.crane_no?" /"+escHtml(r.crane_no):"")+'</div>'+
+      '<div class="sub">'+escHtml(recordDate(r))+(r.staff?" / No."+escHtml(r.staff):"")+' '+escHtml(r.class_month||"")+" "+pm+'</div></div>'+
+      '<div class="actions"><button onclick="loadRecord(\''+r.id+'\')">開く</button><button class="exp" onclick="exportOne(\''+r.id+'\')">⬇</button><button class="del" onclick="deleteRecord(\''+r.id+'\')">削除</button></div></li>';
   }).join("");
 }
-function loadRecord(id){ var r=getRecords().find(function(x){ return x.id===id; }); if(!r) return; loadFormData(r); document.querySelectorAll(".tab").forEach(function(t){ t.classList.remove("active"); }); document.querySelectorAll(".section").forEach(function(s){ s.classList.remove("active"); }); document.querySelector('.tab[data-tab=form]').classList.add("active"); document.getElementById("tab-form").classList.add("active"); }
-function deleteRecord(id){ if(!confirm("この記録を削除しますか？")) return; setRecords(getRecords().filter(function(x){ return x.id!==id; })); renderSavedList(); }
-
-// ─── ファイル入出力 ───
-function downloadFile(name,content,mime){ var blob=new Blob([content],{type:mime||"application/json"}); var url=URL.createObjectURL(blob); var a=document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function(){ URL.revokeObjectURL(url); },1000); }
-function exportJSON(){ var d=collectFormData(); downloadFile("点検_"+(d.customer||"no-name")+"_"+(d.date||localDateString())+".json",JSON.stringify(d,null,2)); }
-function exportOne(id){ var r=getRecords().find(function(x){ return x.id===id; }); if(!r) return; downloadFile("点検_"+(r.customer||"no-name")+"_"+recordDate(r)+".json",JSON.stringify(r,null,2)); }
-function exportAllJSON(){ downloadFile("hishii_全点検記録_"+localDateString()+".json",JSON.stringify(getRecords(),null,2)); }
+function loadRecord(id){var r=getRecords().find(function(x){return x.id===id;});if(!r)return;loadFormData(r);document.querySelectorAll(".tab").forEach(function(t){t.classList.remove("active");});document.querySelectorAll(".section").forEach(function(s){s.classList.remove("active");});document.querySelector('.tab[data-tab=form]').classList.add("active");document.getElementById("tab-form").classList.add("active");}
+function deleteRecord(id){if(!confirm("この記録を削除しますか？"))return;setRecords(getRecords().filter(function(x){return x.id!==id;}));renderSavedList();}
+function downloadFile(name,content,mime){var blob=new Blob([content],{type:mime||"application/json"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1000);}
+function exportJSON(){var d=collectFormData();downloadFile("点検_"+(d.customer||"no-name")+"_"+(d.date||localDateString())+".json",JSON.stringify(d,null,2));}
+function exportOne(id){var r=getRecords().find(function(x){return x.id===id;});if(!r)return;downloadFile("点検_"+(r.customer||"no-name")+"_"+recordDate(r)+".json",JSON.stringify(r,null,2));}
+function exportAllJSON(){downloadFile("hishii_全点検記録_"+localDateString()+".json",JSON.stringify(getRecords(),null,2));}
 function importJSON(e){
-  var file=e.target.files[0]; if(!file) return;
+  var file=e.target.files[0];if(!file)return;
   var reader=new FileReader();
   reader.onload=function(ev){
-    try{
-      var d=JSON.parse(ev.target.result); var records=getRecords();
-      if(Array.isArray(d)){ d.forEach(function(r){ if(!records.find(function(x){ return x.id===r.id; })) records.push(r); }); setRecords(records); alert(d.length+"件の記録を取り込みました"); }
-      else{ if(!records.find(function(x){ return x.id===d.id; })) records.unshift(d); else if(confirm("同じIDの記録があります。上書きしますか？")) records=records.map(function(x){ return x.id===d.id?d:x; }); setRecords(records); alert("1件の記録を取り込みました"); }
+    try{var d=JSON.parse(ev.target.result);var records=getRecords();
+      if(Array.isArray(d)){d.forEach(function(r){if(!records.find(function(x){return x.id===r.id;}))records.push(r);});setRecords(records);alert(d.length+"件取込みました");}
+      else{if(!records.find(function(x){return x.id===d.id;}))records.unshift(d);else if(confirm("同じIDがあります。上書きしますか？"))records=records.map(function(x){return x.id===d.id?d:x;});setRecords(records);alert("1件取込みました");}
       renderSavedList();
-    }catch(err){ alert("読込みエラー: "+err.message); }
-  };
-  reader.readAsText(file); e.target.value="";
+    }catch(err){alert("読込みエラー: "+err.message);}
+  };reader.readAsText(file);e.target.value="";
 }
 
-// ─── PDF印刷（写真サムネイル追加） ───
+/* ===== PDF印刷（黒色テーマ） ===== */
 function printHishiiPDF(){
   var w=window.open('','_blank');
-  if(!w){ alert("ポップアップがブロックされました。許可してから再試行してください。"); return; }
-  function fv(id){ var el=document.getElementById(id); return el?(el.value||''):''; }
-  function chk(id){ var el=document.getElementById(id); return el?el.checked:false; }
-  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-  function rowSpanCounts(list,key){ var counts={}; list.forEach(function(it){ counts[it[key]]=(counts[it[key]]||0)+1; }); return counts; }
-  function itemRows(list){
-    var catCounts=rowSpanCounts(list,'cat'); var subCounts={}; list.forEach(function(it){ var k=it.cat+'>'+it.sub; subCounts[k]=(subCounts[k]||0)+1; }); var seenCat={},seenSub={};
-    return list.map(function(it){
+  if(!w){alert("ポップアップがブロックされました。");return;}
+  function v(id){var el=document.getElementById(id);return el?(el.value||''):'';}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function labelHtml(s){return esc(s).replace(/\n/g,'<br>');}
+  function getPdfLabel(item){
+    if(item.group!=="rope")return getEffectiveLabel(item);
+    if(equipState.ropeMode==="wire")return{cat:"ワイヤーロープ\nチェーン／",sub:"ワイヤーロープ"};
+    return{cat:"チェーン",sub:"ワイヤーロープ／"};
+  }
+
+  function itemRowsPdf(list){
+    var items=list.map(function(it){var lbl=getPdfLabel(it);return{cat:lbl.cat,sub:lbl.sub,no:it.no,desc:it.desc,cls:it.cls,measure:it.measure,group:it.group};});
+    var catC={},subC={};
+    items.forEach(function(it){catC[it.cat]=(catC[it.cat]||0)+1;var k=it.cat+">"+it.sub;subC[k]=(subC[k]||0)+1;});
+    var seenC={},seenS={};
+    return items.map(function(it){
       var html='<tr>';
-      if(!seenCat[it.cat]){ seenCat[it.cat]=true; html+='<td class="cat" rowspan="'+catCounts[it.cat]+'">'+esc(it.cat)+'</td>'; }
-      var subKey=it.cat+'>'+it.sub;
-      if(!seenSub[subKey]){ seenSub[subKey]=true; html+='<td class="sub" rowspan="'+subCounts[subKey]+'">'+esc(it.sub)+'</td>'; }
-      var desc=it.desc; if(it.measure&&state.measurements[it.no]) desc+='【'+state.measurements[it.no]+'mm】';
+      if(!seenC[it.cat]){seenC[it.cat]=true;html+='<td class="cat" rowspan="'+catC[it.cat]+'">'+labelHtml(it.cat)+'</td>';}
+      var sk=it.cat+">"+it.sub;
+      if(!seenS[sk]){seenS[sk]=true;html+='<td class="sub" rowspan="'+subC[sk]+'">'+labelHtml(it.sub)+'</td>';}
+      var desc=it.desc;
+      if(it.measure&&state.measurements[it.no])desc+='【'+state.measurements[it.no]+'mm】';
       var sym=state.results[it.no]||'○';
+      if(equipState.ropeMode==="chain"&&it.group==="rope"&&it.no===5)sym='／';
       html+='<td class="no">'+it.no+'</td><td class="desc">'+esc(desc)+'</td><td class="cls">'+esc(it.cls)+'</td><td class="res">'+esc(sym)+'</td></tr>';
       return html;
     }).join('');
   }
-  var settings={}; try{ settings=JSON.parse(localStorage.getItem('hishii_settings_v1')||'{}'); }catch(e){}
-  var kubun=fv('f-class-month');
-  var leftRows=itemRows(ITEMS.slice(0,39));
-  var rightRows=itemRows(ITEMS.slice(39));
+
+  var kubun=v('f-class-month');
+  var isAnnual=kubun.indexOf('年次')>=0;
+  var isMonthly=kubun==='A'||kubun==='ABC'||isAnnual;
+  var inspectors=[v('f-inspector1'),v('f-inspector2'),v('f-inspector3')].filter(function(s){return s.trim()!=='';});
+  var leftRows=itemRowsPdf(ITEMS.slice(0,39));
+  var rightRows=itemRowsPdf(ITEMS.slice(39));
+  var musenLbl=getMusenLabel();
+  var ropeLbl=getRopeLabel();
+  var equipNote='No.1〜4: '+esc(musenLbl.sub)+'　／　No.5〜8: '+esc(ropeLbl.sub);
+
+  /* ★ 補足欄テキスト：改行をBRに変換 ★ */
+  var remarksText=state.itemsRemarks||(document.getElementById("f-items-remarks")?document.getElementById("f-items-remarks").value:"");
+  var remarksPdfHtml=remarksText
+    ? esc(remarksText).replace(/\n/g,'<br>')
+    : '（なし）';
+
   var annualRows=
     '<tr><th colspan="12" class="annual-title">年次点検の時必要に応じて記入</th></tr>'+
-    '<tr><td class="annual-label">巻上下</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(fv('f-ann-makiage-zetuen'))+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+esc(fv('f-ann-makiage-denryu'))+'</td><td>A</td><td>タワミ</td><td class="input-cell">'+esc(fv('f-ann-tawami'))+'</td><td>mm</td></tr>'+
-    '<tr><td class="annual-label">横行</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(fv('f-ann-oko-zetuen'))+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+esc(fv('f-ann-oko-denryu'))+'</td><td>A</td><td>スパン</td><td class="input-cell">'+esc(fv('f-ann-span'))+'</td><td>mm</td></tr>'+
-    '<tr><td class="annual-label">走行</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(fv('f-ann-soko-zetuen'))+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+esc(fv('f-ann-soko-denryu'))+'</td><td>A</td><td>横行レールゲージ</td><td class="input-cell">'+esc(fv('f-ann-rail-gauge'))+'</td><td>mm</td></tr>'+
-    '<tr><td class="annual-label">電源・操作</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(fv('f-ann-dengen-zetuen'))+'</td><td>MΩ</td><td colspan="4">定格荷重の表示</td><td colspan="2" class="input-cell">'+esc(fv('f-ann-load'))+'</td><td>ton</td></tr>'+
-    '<tr><td colspan="12" class="memo">【補足】 '+esc(fv('f-ann-memo'))+'</td></tr>';
+    '<tr><td class="annual-label">巻上下</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(v('f-ann-makiage-zetuen'))+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+esc(v('f-ann-makiage-denryu'))+'</td><td>A</td><td>タワミ</td><td class="input-cell">'+esc(v('f-ann-tawami'))+'</td><td>mm</td></tr>'+
+    '<tr><td class="annual-label">横行</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(v('f-ann-oko-zetuen'))+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+esc(v('f-ann-oko-denryu'))+'</td><td>A</td><td>スパン</td><td class="input-cell">'+esc(v('f-ann-span'))+'</td><td>mm</td></tr>'+
+    '<tr><td class="annual-label">走行</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(v('f-ann-soko-zetuen'))+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+esc(v('f-ann-soko-denryu'))+'</td><td>A</td><td>横行レールゲージ</td><td class="input-cell">'+esc(v('f-ann-rail-gauge'))+'</td><td>mm</td></tr>'+
+    '<tr><td class="annual-label">電源・操作</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(v('f-ann-dengen-zetuen'))+'</td><td>MΩ</td><td colspan="4">定格荷重の表示</td><td colspan="2" class="input-cell">'+esc(v('f-ann-load'))+'</td><td>ton</td></tr>'+
+    '<tr><td colspan="12" class="memo">【年次補足】 '+esc(v('f-ann-memo'))+'</td></tr>';
 
-  // 特記事項
-  var remarksVal=fv('f-remarks'), handoverVal=fv('f-handover'); var remarksHtml='';
-  if(remarksVal||handoverVal){ remarksHtml='<div class="remarks-sec">'+(remarksVal?'<div class="remarks-block"><span class="remarks-label">特記事項</span><div class="remarks-body">'+esc(remarksVal).replace(/\n/g,'<br>')+'</div></div>':'')+(handoverVal?'<div class="remarks-block"><span class="remarks-label">申し送り</span><div class="remarks-body">'+esc(handoverVal).replace(/\n/g,'<br>')+'</div></div>':'')+'</div>'; }
+  var inspectorLineHtml=
+    '<div class="inspector-block"><span class="inspector-label">点検者</span>'+
+    inspectors.concat(['','','']).slice(0,3).map(function(s){return'<span class="inspector-line">'+esc(s)+'</span>';}).join('')+'</div>';
 
-  // 写真セクション
-  var photosHtml='';
-  if(state.photos.length>0){
-    photosHtml='<div class="photo-sec"><div class="photo-sec-title">📷 添付写真（'+state.photos.length+'枚）</div><div class="photo-sec-grid">';
-    state.photos.forEach(function(p,i){
-      photosHtml+='<div class="photo-item"><img src="'+p.data+'" alt="写真'+(i+1)+'">';
-      if(p.caption) photosHtml+='<div class="photo-cap">'+esc(p.caption)+'</div>';
-      photosHtml+='</div>';
-    });
-    photosHtml+='</div></div>';
+  var photoPageHtml='';
+  if(state.photos.length){
+    photoPageHtml='<div style="page-break-before:always;padding:8mm;"><h2 style="font-size:11pt;color:#111;border-bottom:1px solid #333;padding-bottom:2mm;margin:0 0 4mm;">現場写真　'+esc(v('f-customer'))+(v('f-date')?' （'+esc(v('f-date'))+'）':'')+'</h2>'+
+      '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6mm;">'+
+      state.photos.map(function(p,i){return'<div style="border:1px solid #999;border-radius:3px;overflow:hidden;"><img src="'+p.dataUrl+'" style="width:100%;height:70mm;object-fit:cover;display:block;"><div style="font-size:8pt;padding:2mm 3mm;background:#f5f5f5;color:#111;border-top:1px solid #ccc;">'+(p.caption?esc(p.caption):'写真'+(i+1))+'</div></div>';}).join('')+
+      '</div></div>';
   }
 
+  /* ★ PDFテーマカラーをすべて黒系に統一 ★ */
   var html='<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>菱井工業 点検検査記録表</title><style>'+
     '*{box-sizing:border-box;margin:0;padding:0;}@page{size:A4 portrait;margin:4mm;}'+
-    'body{font-family:"Yu Gothic","Meiryo",sans-serif;color:#2f6f9f;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'+
-    '.sheet{width:197mm;margin:0 auto;padding:0;font-size:7pt;line-height:1.1;}'+
+    'body{font-family:"Yu Gothic","Meiryo","Noto Sans JP",sans-serif;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'+
+    '.sheet{width:197mm;min-height:285mm;margin:0 auto;padding:0;font-size:7pt;line-height:1.1;}'+
     '.top{display:grid;grid-template-columns:1fr 68mm 1fr;align-items:start;margin-bottom:1mm;}'+
-    '.customer{display:grid;grid-template-columns:1fr auto;align-items:end;gap:4mm;font-size:9pt;border-bottom:1px solid #7fb1d6;margin-top:4mm;padding-left:5mm;height:8mm;}'+
-    '.honorific{padding-right:1mm;}.title{text-align:center;font-size:14pt;font-weight:700;margin-top:7mm;}'+
-    '.branches{font-size:6.3pt;line-height:1.18;text-align:right;}.company{font-size:8pt;font-weight:700;line-height:1.25;}'+
-    '.checks{display:flex;gap:6mm;justify-content:center;font-size:8pt;margin-top:1mm;}'+
-    '.box{display:inline-block;width:3mm;height:3mm;border:1px solid #7fb1d6;vertical-align:-0.4mm;margin-right:1mm;text-align:center;line-height:2.8mm;font-size:6pt;}'+
+    '.customer{display:grid;grid-template-columns:1fr auto;align-items:end;gap:4mm;font-size:9pt;border-bottom:1px solid #333;margin-top:4mm;padding-left:5mm;height:8mm;}'+
+    '.title{text-align:center;font-size:14pt;font-weight:700;margin-top:7mm;color:#111;}'+
+    '.branches{font-size:6.3pt;line-height:1.18;text-align:right;color:#111;}'+
+    '.company{font-size:8pt;font-weight:700;line-height:1.25;color:#111;}'+
+    '.checks{display:flex;gap:6mm;justify-content:center;font-size:8pt;margin-top:1mm;color:#111;}'+
+    '.box{display:inline-block;width:3mm;height:3mm;border:1px solid #333;vertical-align:-0.4mm;margin-right:1mm;text-align:center;line-height:2.8mm;font-size:6pt;}'+
     '.info{margin-bottom:1mm;}.info-table{width:100%;border-collapse:collapse;table-layout:fixed;}'+
-    '.info-table th,.info-table td{border:1px solid #7fb1d6;height:4.8mm;padding:0 0.8mm;vertical-align:middle;font-size:7.1pt;}'+
-    '.info-table th{text-align:center;font-weight:700;}.info-table td{text-align:left;}.info-table .center{text-align:center;}'+
-    '.legend{border:1px solid #7fb1d6;border-bottom:none;padding:0.5mm 1mm;text-align:right;font-size:6.4pt;}'+
+    '.info-table th,.info-table td{border:1px solid #333;height:4.8mm;padding:0 0.8mm;vertical-align:middle;font-size:7.1pt;color:#111;}'+
+    '.info-table th{text-align:center;font-weight:700;background:#f0f0f0;}'+
+    '.info-table td{text-align:left;}.info-table .center{text-align:center;}'+
+    '.legend{border:1px solid #333;border-bottom:none;padding:0.5mm 1mm;font-size:6.4pt;display:flex;justify-content:space-between;align-items:center;color:#111;}'+
+    '.equip-note{font-size:5.8pt;color:#444;font-style:italic;}'+
     '.main{display:grid;grid-template-columns:97.8mm 97.8mm;gap:1.4mm;}'+
     'table{border-collapse:collapse;width:100%;table-layout:fixed;}'+
-    '.items th,.items td{border:1px solid #7fb1d6;vertical-align:middle;}'+
-    '.items th{height:4.8mm;font-size:6.8pt;font-weight:700;text-align:center;}'+
+    '.items th,.items td{border:1px solid #333;vertical-align:middle;color:#111;}'+
+    '.items th{height:4.8mm;font-size:6.8pt;font-weight:700;text-align:center;background:#e8e8e8;}'+
     '.items td{height:5.02mm;font-size:6.55pt;padding:0.1mm 0.5mm;}'+
-    '.items col.catcol{width:7.8mm}.items col.subcol{width:14.8mm}.items col.nocol{width:5.8mm}.items col.desccol{width:52.4mm}.items col.clscol{width:6.8mm}.items col.rescol{width:10mm}'+
-    '.cat{writing-mode:vertical-rl;text-orientation:upright;text-align:center;font-weight:700;padding:0.5mm 0;}'+
-    '.sub{text-align:center;font-size:6.4pt;line-height:1.05;font-weight:600;}'+
+    '.items-l col.catcol,.items-r col.catcol{width:7.8mm}'+
+    '.items-l col.subcol,.items-r col.subcol{width:7.5mm}'+
+    '.items-l col.nocol,.items-r col.nocol{width:5.8mm}'+
+    '.items-l col.desccol,.items-r col.desccol{width:59.7mm}'+
+    '.items-l col.clscol,.items-r col.clscol{width:6.8mm}'+
+    '.items-l col.rescol,.items-r col.rescol{width:10mm}'+
+    '.cat{writing-mode:vertical-rl;text-orientation:upright;text-align:center;font-weight:700;padding:0.5mm 0;line-height:1;background:#f5f5f5;}'+
+    '.sub{text-align:center;font-size:6.4pt;line-height:1.05;font-weight:600;background:#fafafa;}'+
     '.no,.cls,.res{text-align:center;font-weight:700;}.desc{line-height:1.1;}.res{font-size:8pt;}'+
-    '.annual{margin-top:0.6mm;}.annual th,.annual td{border:1px solid #7fb1d6;height:4.85mm;font-size:6.35pt;text-align:center;vertical-align:middle;padding:0.1mm 0.45mm;}'+
-    '.annual-title{text-align:left!important;padding-left:2mm!important;font-weight:700;}.annual-label{font-weight:700;}.input-cell{font-weight:700;min-width:9mm;}.memo{text-align:left!important;height:8.2mm!important;vertical-align:top!important;padding:0.5mm 0.8mm!important;}'+
-    '.bottom-block{display:grid;grid-template-columns:1fr 94mm;margin-top:0.5mm;font-size:6.8pt;align-items:end;}'+
-    '.inspectors{display:grid;grid-template-columns:12mm 22mm 22mm 22mm;column-gap:2mm;align-items:end;height:4mm;}'+
-    '.date-line{display:grid;grid-template-columns:13mm 11mm 9mm 6mm 9mm 6mm 9mm 6mm;column-gap:1.4mm;align-items:end;height:4mm;margin-top:0.1mm;}'+
-    '.bottom-block .line{border-bottom:1px solid #7fb1d6;text-align:center;height:3.5mm;}.bottom-block span{white-space:nowrap;}'+
-    '.note{text-align:center;font-size:5.7pt;margin-top:0.5mm;line-height:1;white-space:nowrap;}'+
-    '.remarks-sec{margin-top:1mm;border:1px solid #7fb1d6;padding:1mm 2mm;font-size:6.5pt;}'+
-    '.remarks-label{font-weight:700;display:inline-block;min-width:14mm;color:#2f6f9f;margin-right:2mm;}'+
-    '.remarks-body{display:inline;line-height:1.4;color:#333;}.remarks-block{margin-bottom:0.8mm;}'+
-    // 写真セクション用CSS
-    '.photo-sec{margin-top:2mm;border:1px solid #7fb1d6;padding:1.5mm 2mm;page-break-inside:avoid;}'+
-    '.photo-sec-title{font-size:7pt;font-weight:700;color:#2f6f9f;margin-bottom:1.5mm;}'+
-    '.photo-sec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2mm;}'+
-    '.photo-item img{width:100%;height:38mm;object-fit:cover;border:1px solid #ccc;border-radius:2px;display:block;}'+
-    '.photo-cap{font-size:5.5pt;color:#555;margin-top:0.5mm;text-align:center;word-break:break-all;}'+
-    '@media print{html,body{width:210mm;}.sheet{page-break-inside:avoid;}.back-btn{display:none!important;}}'+
-    '@media screen{body{background:#ddd;padding:10px}.sheet{background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.18);padding:5mm;}.back-btn{position:fixed;top:10px;left:10px;padding:8px 20px;font-size:14px;background:#1a73e8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:inherit;z-index:999;}}'+
-    '</style></head><body><div class="sheet">'+
+    '.annual{margin-top:0.6mm;}.annual th,.annual td{border:1px solid #333;height:4.85mm;font-size:6.35pt;text-align:center;vertical-align:middle;padding:0.1mm 0.45mm;color:#111;}'+
+    '.annual th{background:#e8e8e8;}'+
+    '.annual-title{text-align:left!important;padding-left:2mm!important;font-weight:700;background:#e8e8e8;}'+
+    '.annual-label{font-weight:700;}.input-cell{font-weight:700;}.memo{text-align:left!important;height:6mm!important;vertical-align:top!important;padding:0.5mm 0.8mm!important;}'+
+    /* ★ 補足欄スタイル ★ */
+    '.remarks-section{margin-top:1.2mm;border:1px solid #333;}'+
+    '.remarks-section .remarks-title{background:#e8e8e8;font-size:6.8pt;font-weight:700;padding:0.6mm 1.5mm;border-bottom:1px solid #333;color:#111;}'+
+    '.remarks-section .remarks-body{font-size:6.8pt;padding:1mm 1.5mm;min-height:10mm;line-height:1.6;color:#111;word-break:break-all;white-space:pre-wrap;}'+
+    '.bottom-block{display:grid;grid-template-columns:1fr auto;align-items:end;margin-top:1.2mm;gap:2mm;}'+
+    '.inspector-block{display:flex;align-items:flex-end;gap:3mm;font-size:7pt;color:#111;}'+
+    '.inspector-label{white-space:nowrap;font-weight:700;padding-bottom:0.5mm;}'+
+    '.inspector-line{display:inline-block;min-width:38mm;border-bottom:1px solid #333;height:5mm;line-height:5mm;text-align:center;font-size:8pt;font-weight:600;}'+
+    '.date-line{display:flex;align-items:flex-end;gap:1.5mm;font-size:7pt;white-space:nowrap;color:#111;}'+
+    '.date-line .dl{display:inline-block;min-width:10mm;border-bottom:1px solid #333;height:5mm;line-height:5mm;text-align:center;}'+
+    '.note{text-align:center;font-size:5.7pt;margin-top:0.8mm;line-height:1;color:#333;}'+
+    '@media print{html,body{width:210mm;height:297mm;overflow:hidden;}.sheet{height:289mm;overflow:hidden;page-break-inside:avoid;}.back-btn{display:none!important;}}'+
+    '@media screen{body{background:#ccc;padding:10px;}.sheet{background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.22);padding:5mm;}.back-btn{position:fixed;top:10px;left:10px;padding:8px 20px;font-size:14px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;z-index:999;}}'+
+    '</style></head><body>'+
+    '<div class="sheet">'+
     '<div class="top">'+
-      '<div class="customer"><span>'+esc(fv('f-customer'))+'</span><span class="honorific">殿</span></div>'+
-      '<div><div class="title">ホイスト・クレーン<br>点検検査記録表</div><div class="checks"><span><span class="box">'+(chk('f-annual')?'✓':'')+'</span>年次</span><span><span class="box">'+(chk('f-monthly')?'✓':'')+'</span>月例</span></div></div>'+
-      '<div class="branches"><div class="company">菱井工業株式会社</div>本社〒578-0967大阪府東大阪市新鴻池町2番2号<br>　　　TEL072-961-1565（代）FAX072-963-6159<br>関東営業所〒272-0024千葉県浦安市港76番16号<br>　　　TEL047-704-9701（代）FAX047-704-9357<br>九州営業所〒810-0075福岡市中央区港2丁目3-13<br>　　　TEL092-791-7072（代）FAX092-791-7073</div>'+
+      '<div class="customer"><span>'+esc(v('f-customer'))+'</span><span>殿</span></div>'+
+      '<div><div class="title">ホイスト・クレーン<br>点検検査記録表</div>'+
+        '<div class="checks"><span><span class="box">'+(isAnnual?'✓':'')+'</span>年次</span><span><span class="box">'+(isMonthly?'✓':'')+'</span>月例</span></div></div>'+
+      '<div class="branches"><div class="company">菱井工業株式会社</div>'+
+        '本社〒578-0967大阪府東大阪市新鴻池町2番2号<br>TEL072-961-1565（代）FAX072-963-6159<br>'+
+        '関東営業所〒272-0024千葉県浦安市港76番16号<br>九州営業所〒810-0075福岡市中央区港2丁目3-13</div>'+
     '</div>'+
-    '<div class="info"><table class="info-table"><colgroup><col style="width:15.5%"><col style="width:21.5%"><col style="width:13%"><col style="width:29%"><col style="width:7%"><col style="width:7%"><col style="width:3%"><col style="width:4%"></colgroup>'+
-      '<tr><th rowspan="2">設　置　場　所</th><td rowspan="2">'+esc(fv('f-location'))+'</td><th>ﾎｲｽﾄ形式</th><td>'+esc(fv('f-hoist-type'))+'</td><th>今月の点検区分</th><td>'+esc(kubun)+'</td><th>担　当</th><td>'+esc(fv('f-staff'))+'</td></tr>'+
-      '<tr><th>ﾎｲｽﾄ機番</th><td>'+esc(fv('f-hoist-no'))+'</td><td colspan="2" rowspan="3"></td><td colspan="2" rowspan="3"></td></tr>'+
-      '<tr><th>ク　レ　ー　ン　番号</th><td>'+esc(fv('f-crane-no'))+'</td><th>検　査　証　番　号</th><td>'+esc(fv('f-cert-no'))+'</td></tr>'+
-      '<tr><th>ク　レ　ー　ン　種類</th><td>'+esc(fv('f-crane-type'))+'</td><th>検　査　証　期　限</th><td class="center">'+esc(fv('f-cert-exp'))+'</td></tr>'+
-      '<tr><th>サドル形式、機番</th><td>'+esc(fv('f-saddle'))+'</td><th>ワイヤー取替履歴</th><td class="center">'+esc(fv('f-wire-date'))+'</td><td colspan="4"></td></tr>'+
+    '<div class="info"><table class="info-table">'+
+      '<colgroup><col style="width:15.5%"><col style="width:21.5%"><col style="width:13%"><col style="width:29%"><col style="width:7%"><col style="width:7%"><col style="width:3%"><col style="width:4%"></colgroup>'+
+      '<tr><th rowspan="2">設　置　場　所</th><td rowspan="2">'+esc(v('f-location'))+'</td><th>ﾎｲｽﾄ形式</th><td>'+esc(v('f-hoist-type'))+'</td><th>今月の点検区分</th><td>'+esc(kubun)+'</td><th>クレーンNo.</th><td>'+esc(v('f-staff'))+'</td></tr>'+
+      '<tr><th>ﾎｲｽﾄ機番</th><td>'+esc(v('f-hoist-no'))+'</td><td colspan="2" rowspan="3"></td><td colspan="2" rowspan="3"></td></tr>'+
+      '<tr><th>クレーン番号</th><td>'+esc(v('f-crane-no'))+'</td><th>検　査　証　番　号</th><td>'+esc(v('f-cert-no'))+'</td></tr>'+
+      '<tr><th>クレーン種類</th><td>'+esc(v('f-crane-type'))+'</td><th>検　査　証　期　限</th><td class="center">'+esc(v('f-cert-exp'))+'</td></tr>'+
+      '<tr><th>サドル形式、機番</th><td>'+esc(v('f-saddle'))+'</td><th>ワイヤー取替履歴</th><td class="center">'+esc(v('f-wire-date'))+'</td><td colspan="4"></td></tr>'+
     '</table></div>'+
-    '<div class="legend">（記号説明　○…良好　△…要注意　▲…要修理　×…不良　Ⓧ…処置実施　／…区分外、該当なし）</div>'+
-    '<div class="main">'+
-      '<div><table class="items"><colgroup><col class="catcol"><col class="subcol"><col class="nocol"><col class="desccol"><col class="clscol"><col class="rescol"></colgroup><thead><tr><th colspan="4">点　検　項　目</th><th>区分</th><th>良否</th></tr></thead><tbody>'+leftRows+'</tbody></table></div>'+
-      '<div><table class="items"><colgroup><col class="catcol"><col class="subcol"><col class="nocol"><col class="desccol"><col class="clscol"><col class="rescol"></colgroup><thead><tr><th colspan="4">点　検　項　目</th><th>区分</th><th>良否</th></tr></thead><tbody>'+rightRows+'</tbody></table>'+
-      '<table class="annual">'+annualRows+'</table></div>'+
+    '<div class="legend">'+
+      '<span>（記号説明　○…良好　△…要注意　▲…要修理　×…不良　Ⓧ…処置実施　／…区分外、該当なし）</span>'+
+      '<span class="equip-note">'+equipNote+'</span>'+
     '</div>'+
-    remarksHtml+
-    photosHtml+
-    '<div class="bottom-block"><div></div><div>'+
-      '<div class="inspectors"><span>点検者</span><span class="line"></span><span class="line"></span><span class="line"></span></div>'+
-      '<div class="date-line"><span>点検日</span><span>令和</span><span class="line"></span><span>年</span><span class="line"></span><span>月</span><span class="line"></span><span>日</span></div>'+
-    '</div></div>'+
-    '<div class="note">本報告書はクレーン等安全規則第3節第38条により3年間保管願います。　菱井工業株式会社　'+esc(settings.addr1||'')+'　'+esc(settings.tel1||'')+'</div>'+
-    '</div><button class="back-btn" onclick="window.close()">← 戻る（閉じる）</button>'+
-    '<script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script></body></html>';
-  w.document.write(html); w.document.close();
+    '<div class="main">'+
+      '<div><table class="items items-l"><colgroup><col class="catcol"><col class="subcol"><col class="nocol"><col class="desccol"><col class="clscol"><col class="rescol"></colgroup>'+
+        '<thead><tr><th colspan="4">点　検　項　目</th><th>区分</th><th>良否</th></tr></thead><tbody>'+leftRows+'</tbody></table></div>'+
+      '<div><table class="items items-r"><colgroup><col class="catcol"><col class="subcol"><col class="nocol"><col class="desccol"><col class="clscol"><col class="rescol"></colgroup>'+
+        '<thead><tr><th colspan="4">点　検　項　目</th><th>区分</th><th>良否</th></tr></thead><tbody>'+rightRows+'</tbody></table>'+
+        '<table class="annual">'+annualRows+'</table></div>'+
+    '</div>'+
+    /* ★ PDF補足欄ブロック ★ */
+    '<div class="remarks-section">'+
+      '<div class="remarks-title">📝 点検項目 補足・特記事項</div>'+
+      '<div class="remarks-body">'+remarksPdfHtml+'</div>'+
+    '</div>'+
+    '<div class="bottom-block">'+inspectorLineHtml+
+      '<div class="date-line"><span>点検日</span><span>令和</span><span class="dl"></span><span>年</span><span class="dl"></span><span>月</span><span class="dl"></span><span>日</span></div>'+
+    '</div>'+
+    '<div class="note">本報告書はクレーン等安全規則第3節第38条により3年間保管願います。　菱井工業株式会社</div>'+
+    '</div>'+
+    photoPageHtml+
+    '<button class="back-btn" onclick="window.close()">← 閉じる</button>'+
+    '<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},400);};</scr'+'ipt>'+
+    '</body></html>';
+  w.document.write(html);w.document.close();
 }
 
-// ─── 設定 ───
-function loadSettings(){ try{ var s=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"{}"); if(s.addr1) document.getElementById("set-addr1").value=s.addr1; if(s.tel1) document.getElementById("set-tel1").value=s.tel1; if(s.addr2) document.getElementById("set-addr2").value=s.addr2; if(s.addr3) document.getElementById("set-addr3").value=s.addr3; }catch(e){} }
-function saveSettings(){ localStorage.setItem(SETTINGS_KEY,JSON.stringify({addr1:document.getElementById("set-addr1").value,tel1:document.getElementById("set-tel1").value,addr2:document.getElementById("set-addr2").value,addr3:document.getElementById("set-addr3").value})); alert("設定を保存しました"); }
+/* ===== 設定 ===== */
+function loadSettings(){
+  try{var s=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"{}");
+    if(s.addr1)document.getElementById("set-addr1").value=s.addr1;
+    if(s.tel1)document.getElementById("set-tel1").value=s.tel1;
+    if(s.addr2)document.getElementById("set-addr2").value=s.addr2;
+    if(s.addr3)document.getElementById("set-addr3").value=s.addr3;
+  }catch(e){}
+}
+function saveSettings(){
+  localStorage.setItem(SETTINGS_KEY,JSON.stringify({addr1:document.getElementById("set-addr1").value,tel1:document.getElementById("set-tel1").value,addr2:document.getElementById("set-addr2").value,addr3:document.getElementById("set-addr3").value}));
+  alert("設定を保存しました");
+}
+function showHelp(){
+  alert("【使い方】\n\n■ 機器選択（点検項目カード上部）\n　No.1〜4：「無線機＋押釦SW」「無線機のみ」「押釦SWのみ」の3択\n　No.5〜8：「ワイヤーロープ」「チェーン」の2択\n\n■ 音声コマンド\n「5は黒」→▲　「10ばつ」→×　「12処置済」→Ⓧ　「15該当なし」→／\n「1から4まで黒」→1〜4番を▲\n「摩耗12.5」→6番の摩耗計測値 12.5mm\n\n■ 補足欄\n点検項目の補足・特記事項はPDFにも反映されます。\n\n■ PDF/印刷\nChrome →「PDFとして保存」");
+}
 
-// ─── ヘルプ ───
-function showHelp(){ alert("【使い方】\n■ 音声コマンド例\n「5は黒」→ 5番を ▲ に\n「10ばつ」→ 10番を × に\n「12処置済」→ 12番を Ⓧ に\n「15該当なし」→ 15番を ／ に\n「1から4まで黒」→ 1〜4番を ▲ に\n\n■ 数値入力\n「摩耗12.5」→ 6番ワイヤー摩耗 12.5mm\n「巻上絶縁100」→ 100MΩ\n「タワミ10」「スパン10000」→ 自動計算\n\n■ 写真添付\n📷カードの「＋」をタップ → カメラ撮影またはライブラリから選択\n写真は最大5枚・PDF印刷にも反映\nメモ欄に場所や内容を入力可\n\n■ 印刷\nPDF/印刷ボタン → ブラウザ印刷から「PDFとして保存」"); }
-
-// ─── オフライン検知 ───
-function updateOnlineStatus(){ var banner=document.getElementById("offline-banner"); if(!navigator.onLine) banner.classList.add("show"); else banner.classList.remove("show"); }
-window.addEventListener("online",updateOnlineStatus);
-window.addEventListener("offline",updateOnlineStatus);
-
-// ─── 初期化 ───
 function init(){
-  document.getElementById("f-date").value=localDateString();
-  renderTable(); renderPhotoGrid(); loadSettings(); updateOnlineStatus(); checkStorageUsage();
-  document.getElementById("main-mic").addEventListener("click",startMain);
-  document.querySelectorAll(".voice-mini").forEach(function(b){ b.addEventListener("click",function(){ startInputVoice(b.dataset.voice); }); });
+  updateOnlineStatus();
+  if(!document.getElementById("f-date").value)document.getElementById("f-date").value=localDateString();
+  renderTable();
+  updateSummary();
+  renderPhotoGrid();
+  renderSavedList();
+  loadSettings();
+  renderCorrectionsTable();
+  updateTawamiRatio();
+
+  var infoEl=document.getElementById("voice-support-info");
+  var noteEl=document.getElementById("voice-note");
+  var micBtn=document.getElementById("main-mic");
+  if(!SPEECH_SUPPORTED){
+    document.querySelectorAll(".voice-mini").forEach(function(b){b.classList.add("unsupported");});
+    if(micBtn)micBtn.classList.add("unsupported");
+    if(noteEl)noteEl.classList.add("show");
+    if(infoEl)infoEl.textContent="このブラウザは音声認識に対応していません。Google Chromeをお使いください。";
+  }else{
+    if(infoEl){
+      var env=IS_ANDROID?"Android "+(IS_CHROME?"Chrome OK":"Chrome推奨"):IS_IOS?"iPhone/iPad Safari":IS_CHROME?"PC Chrome":"PC";
+      infoEl.textContent="動作環境: "+env;
+    }
+    if(micBtn)micBtn.addEventListener("click",startMain);
+  }
+
+  var kubunBtn=document.getElementById("voice-kubun-btn");
+  if(kubunBtn)kubunBtn.addEventListener("click",function(){if(SPEECH_SUPPORTED)startKubunVoice();});
+  var remarksBtn=document.getElementById("voice-items-remarks-btn");
+  if(remarksBtn)remarksBtn.addEventListener("click",function(){if(SPEECH_SUPPORTED)startRemarksVoice();});
+  document.querySelectorAll(".voice-mini[data-voice]").forEach(function(b){
+    b.addEventListener("click",function(){if(SPEECH_SUPPORTED)startInputVoice(b.dataset.voice);});
+  });
+
+  var remarks=document.getElementById("f-items-remarks");
+  if(remarks)remarks.addEventListener("input",function(){state.itemsRemarks=remarks.value;});
   document.getElementById("f-ann-span").addEventListener("input",updateTawamiRatio);
   document.getElementById("f-ann-tawami").addEventListener("input",updateTawamiRatio);
-  updateTawamiRatio();
-  if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol)){
-    navigator.serviceWorker.register("./hishii-inspection-sw.js").catch(function(e){ console.warn("SW:",e); });
-  }
 }
-if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",init);
-else init();
+
+if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",init);}else{init();}
 </script>
 </body>
 </html>
