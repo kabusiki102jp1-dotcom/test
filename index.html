@@ -364,7 +364,8 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 
   <div class="toolbar no-print">
     <button class="primary" onclick="saveRecord()">💾 保存</button>
-    <button onclick="printHishiiPDFWithDriveGuide()">🖨 PDF/印刷</button>
+    <button onclick="printHishiiPDFWithDriveGuide('color')">🌈 カラーPDF</button>
+    <button onclick="printHishiiPDFWithDriveGuide('print')">🖨 印刷PDF</button>
     <button onclick="exportJSON()">⬇ JSONバックアップ</button>
     <button class="danger" onclick="resetForm()">🗑 入力リセット</button>
     <div class="autosave-status" id="autosave-status">入力中の内容は自動で一時保存されます</div>
@@ -454,6 +455,15 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
     <div class="form-row"><label>関東営業所</label><input type="text" id="set-addr2" value="〒272-0024 千葉県浦安市港76番16号"></div>
     <div class="form-row"><label>九州営業所</label><input type="text" id="set-addr3" value="〒810-0075 福岡市中央区港2丁目3-13"></div>
     <button class="primary" onclick="saveSettings()" style="margin-top:8px;padding:10px 16px;border:none;border-radius:6px;cursor:pointer;font-size:14px;">設定を保存</button>
+  </div>
+  <div class="card">
+    <h2>全データバックアップ</h2>
+    <p style="font-size:12px;color:#666;margin:0 0 8px;">点検記録・顧客マスタ・音声辞書・会社情報をまとめて保存/復元します。</p>
+    <div class="toolbar" style="padding:0;">
+      <button onclick="exportAllDataBackup()">⬇ 全データ保存</button>
+      <button onclick="document.getElementById('all-data-import-file').click()">⬆ 全データ復元</button>
+      <input type="file" id="all-data-import-file" accept=".json,application/json" style="display:none" onchange="importAllDataBackup(event)">
+    </div>
   </div>
 </div>
 
@@ -777,14 +787,16 @@ function startRecognition(){
     for(var i=e.resultIndex;i<e.results.length;i++){var text=e.results[i][0].transcript;if(e.results[i].isFinal)final+=text;else interim+=text;}
     if(interim)setStatus("（聞き取り中）"+interim,"");
     if(final){
-      setStatus("認識: "+final,"");
+      var cleanedFinal=stripVoiceFillers(final);
+      if(!cleanedFinal){setStatus("認識: "+final,"（余分な言葉のみのため入力なし）");return;}
+      setStatus("認識: "+final,(cleanedFinal!==final.trim()?"→ 補正: "+cleanedFinal:""));
       if(voiceTarget==="kubun"){
-        if(!applyKubunVoice(final.trim()))setStatus("認識: "+final,"（A/ABC/ABC＋年次）");
+        if(!applyKubunVoice(cleanedFinal.trim()))setStatus("認識: "+final,"（A/ABC/ABC＋年次）");
         if(!recognition.continuous)recognition.stop();
       } else if(voiceTarget==="items-remarks"){
         /* ★ 補足テキストエリアへ追記 ★ */
         var ta=document.getElementById("f-items-remarks");
-        var cor=applyVoiceCorrections(final.trim());
+        var cor=applyVoiceCorrections(cleanedFinal.trim());
         ta.value=(ta.value?(ta.value+"\n"):"")+cor;
         state.itemsRemarks=ta.value;
         scheduleDraftSave();
@@ -793,20 +805,73 @@ function startRecognition(){
       } else if(voiceTarget){
         var el=document.getElementById(voiceTarget);
         if(el){
-          if(el.type==="number"){var norm=final.replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xFEE0);});var nm=norm.match(/\d+(?:\.\d+)?/);if(nm){el.value=nm[0];el.dispatchEvent(new Event("input"));}}
-          else{var cor2=applyVoiceCorrections(final.trim());el.value=(el.value?el.value+" ":"")+cor2;}
+          if(el.type==="number"){var norm=cleanedFinal.replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xFEE0);});var nm=norm.match(/\d+(?:\.\d+)?/);if(nm){el.value=nm[0];el.dispatchEvent(new Event("input"));}}
+          else if(voiceTarget==="f-hoist-type"){var modelText=normalizeModelVoiceText(cleanedFinal);if(modelText)el.value=(el.value?el.value:"")+modelText;}
+          else{var cor2=applyVoiceCorrections(cleanedFinal.trim());el.value=(el.value?el.value+" ":"")+cor2;}
           scheduleDraftSave();
         }
-        setStatus("認識: "+final,"→ "+voiceTarget+"に入力");
+        setStatus("認識: "+final,"→ "+(voiceTarget==="f-hoist-type"?"ホイスト形式":voiceTarget)+"に入力");
         if(!recognition.continuous)recognition.stop();
       } else {
-        parseVoiceCommand(final).forEach(function(c){applyCommand(c);});
+        parseVoiceCommand(cleanedFinal).forEach(function(c){applyCommand(c);});
       }
     }
   };
   try{recognition.start();}catch(err){console.error(err);setMicState(false);}
 }
 function setStatus(h,p){document.getElementById("voice-heard").textContent=h||"";document.getElementById("voice-parsed").textContent=p||"";}
+
+/* ===== 音声入力の余分な言葉を除去 ===== */
+function stripVoiceFillers(text){
+  var s=String(text||"").trim();
+  s=s.replace(/^[\s　、。,.，．・…\-]+/g,"");
+  var filler="(?:えーっと|ええと|えっと|えー|えと|あのー|あの|あー|そのー|その|うーん|うんと|なんか|まあ|まー|はい|え+|あ+)";
+  var re=new RegExp("^(?:"+filler+")[\\s　、。,.，．・…ー-]*","i");
+  var prev;
+  do{prev=s;s=s.replace(re,"");}while(s!==prev);
+  s=s.replace(/[、。,.，．・…\-]+$/g,"").trim();
+  return s;
+}
+
+/* ===== 型式欄専用の音声補正 ===== */
+function normalizeModelVoiceText(text){
+  var s=String(text||"").trim();
+  s=s.replace(/[Ａ-Ｚａ-ｚ０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xFEE0);});
+  s=s.replace(/[．。｡]/g,".").replace(/[－―−]/g,"-").replace(/\s+/g,"");
+  var map=[
+    [/ハイフン|はいふん/gi,"-"],
+    [/アール|あーる|ある|アル|Rー|Ｒ/gi,"R"],
+    [/エル|える|得る|Ｌ/gi,"L"],
+    [/ディー|でぃー|デー|でー|ディ|でぃ|デイ|でい|で|デ|Ｄ/gi,"D"],
+    [/エッチ|えっち|Ｈ/gi,"H"],
+    [/エス|えす|Ｓ/gi,"S"],
+    [/ケー|けー|Ｋ/gi,"K"],
+    [/ビー|びー|Ｂ/gi,"B"],
+    [/シー|しー|Ｃ/gi,"C"],
+    [/エー|えー|Ａ/gi,"A"],
+    [/イー|いー|Ｅ/gi,"E"],
+    [/エフ|えふ|Ｆ/gi,"F"],
+    [/ジー|じー|Ｇ/gi,"G"],
+    [/アイ|あい|Ｉ/gi,"I"],
+    [/ジェー|じぇー|Ｊ/gi,"J"],
+    [/エム|えむ|Ｍ/gi,"M"],
+    [/エヌ|えぬ|Ｎ/gi,"N"],
+    [/オー|おー|Ｏ/gi,"O"],
+    [/ピー|ぴー|Ｐ/gi,"P"],
+    [/キュー|きゅー|Ｑ/gi,"Q"],
+    [/ティー|てぃー|Ｔ/gi,"T"],
+    [/ユー|ゆー|Ｕ/gi,"U"],
+    [/ブイ|ぶい|Ｖ/gi,"V"],
+    [/ダブリュー|だぶりゅー|Ｗ/gi,"W"],
+    [/エックス|えっくす|Ｘ/gi,"X"],
+    [/ワイ|わい|Ｙ/gi,"Y"],
+    [/ゼット|ぜっと|Ｚ/gi,"Z"]
+  ];
+  map.forEach(function(pair){s=s.replace(pair[0],pair[1]);});
+  s=s.toUpperCase().replace(/[^A-Z0-9.\-]/g,"");
+  s=s.replace(/\.{2,}/g,".").replace(/-{2,}/g,"-");
+  return s;
+}
 
 /* ===== 音声コマンド解析 ===== */
 function jpToNum(t){var m=t.match(/[0-9０-９]+/);if(m)return parseInt(m[0].replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xFEE0);}),10);return null;}
@@ -838,7 +903,7 @@ var CORRECTIONS_KEY="hishii_voice_corrections_v1";
 function getCorrections(){try{var s=JSON.parse(localStorage.getItem(CORRECTIONS_KEY));if(Array.isArray(s))return s;}catch(e){}return DEFAULT_VOICE_CORRECTIONS.slice();}
 function setCorrections(a){localStorage.setItem(CORRECTIONS_KEY,JSON.stringify(a));}
 function applyVoiceCorrections(t){return getCorrections().reduce(function(s,c){return(c.from&&c.to)?s.split(c.from).join(c.to):s;},t);}
-function renderCorrectionsTable(){var tb=document.getElementById("corrections-body");if(!tb)return;var list=getCorrections();if(!list.length){tb.innerHTML='<tr><td colspan="4" style="padding:8px;text-align:center;color:#888;">辞書は空です</td></tr>';return;}tb.innerHTML=list.map(function(c,i){return'<tr><td style="padding:4px 8px;border-bottom:1px solid #eee;">'+c.from+'</td><td style="padding:4px;text-align:center;">→</td><td style="padding:4px 8px;font-weight:600;color:#1a73e8;">'+c.to+'</td><td><button onclick="removeCorrection('+i+')" style="padding:4px 10px;font-size:11px;background:#d93025;color:#fff;border:none;border-radius:3px;cursor:pointer;min-height:32px;">削除</button></td></tr>';}).join("");}
+function renderCorrectionsTable(){var tb=document.getElementById("corrections-body");if(!tb)return;var list=getCorrections();if(!list.length){tb.innerHTML='<tr><td colspan="4" style="padding:8px;text-align:center;color:#888;">辞書は空です</td></tr>';return;}tb.innerHTML=list.map(function(c,i){return'<tr><td style="padding:4px 8px;border-bottom:1px solid #eee;">'+escHtml(c.from)+'</td><td style="padding:4px;text-align:center;">→</td><td style="padding:4px 8px;font-weight:600;color:#1a73e8;">'+escHtml(c.to)+'</td><td><button onclick="removeCorrection('+i+')" style="padding:4px 10px;font-size:11px;background:#d93025;color:#fff;border:none;border-radius:3px;cursor:pointer;min-height:32px;">削除</button></td></tr>';}).join("");}
 function addCorrection(){var from=document.getElementById("new-corr-from").value.trim(),to=document.getElementById("new-corr-to").value.trim();if(!from||!to){alert("両方入力してください");return;}var list=getCorrections(),dup=list.findIndex(function(c){return c.from===from;});if(dup>=0){if(!confirm('"'+from+'"は既にあります。上書きしますか？'))return;list.splice(dup,1);}list.push({from:from,to:to});setCorrections(list);document.getElementById("new-corr-from").value="";document.getElementById("new-corr-to").value="";renderCorrectionsTable();}
 function removeCorrection(i){var l=getCorrections();l.splice(i,1);setCorrections(l);renderCorrectionsTable();}
 function resetCorrections(){if(!confirm("デフォルトに戻しますか？"))return;setCorrections(DEFAULT_VOICE_CORRECTIONS.slice());renderCorrectionsTable();}
@@ -1183,23 +1248,99 @@ function importJSON(e){
   };reader.readAsText(file);e.target.value="";
 }
 
-/* ===== PDF印刷（黒色テーマ） ===== */
-function printHishiiPDFWithDriveGuide(){
+function collectAllDataBackup(){
+  return{
+    app:"hishii-inspection-backup",
+    version:1,
+    exported_at:new Date().toISOString(),
+    records:getRecords(),
+    customers:getCustomers(),
+    corrections:getCorrections(),
+    settings:getSettings()
+  };
+}
+function exportAllDataBackup(){
+  var data=collectAllDataBackup();
+  downloadFile("hishii_全データバックアップ_"+localDateString()+".json",JSON.stringify(data,null,2));
+}
+function importAllDataBackup(e){
+  var file=e.target.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      var d=JSON.parse(ev.target.result);
+      if(!d||d.app!=="hishii-inspection-backup"){alert("全データバックアップファイルではありません");e.target.value="";return;}
+      var records=Array.isArray(d.records)?d.records:[];
+      var customers=Array.isArray(d.customers)?d.customers:[];
+      var corrections=Array.isArray(d.corrections)?d.corrections:[];
+      var settings=(d.settings&&typeof d.settings==="object")?d.settings:{};
+      var msg="現在のデータをバックアップ内容で上書き復元します。\n\n"+
+        "点検記録: "+records.length+"件\n"+
+        "顧客マスタ: "+customers.length+"件\n"+
+        "音声辞書: "+corrections.length+"件\n\n"+
+        "よろしいですか？";
+      if(!confirm(msg)){e.target.value="";return;}
+      setRecords(records);
+      setCustomers(customers);
+      setCorrections(corrections);
+      localStorage.setItem(SETTINGS_KEY,JSON.stringify({
+        addr1:settings.addr1!==undefined?settings.addr1:getDefaultSettings().addr1,
+        tel1:settings.tel1!==undefined?settings.tel1:getDefaultSettings().tel1,
+        addr2:settings.addr2!==undefined?settings.addr2:getDefaultSettings().addr2,
+        addr3:settings.addr3!==undefined?settings.addr3:getDefaultSettings().addr3
+      }));
+      clearDraft("全データを復元しました。下書きは削除しました");
+      loadSettings();
+      renderSavedList();
+      renderCustomerList();
+      renderCorrectionsTable();
+      renderCustomerOptions();
+      alert("全データを復元しました");
+    }catch(err){alert("復元エラー: "+err.message);}
+    e.target.value="";
+  };
+  reader.readAsText(file);
+}
+
+/* ===== PDF印刷 ===== */
+function printHishiiPDFWithDriveGuide(mode){
+  mode=mode==="color"?"color":"print";
+  var modeLabel=mode==="color"?"カラーPDF":"印刷PDF";
   var guide;
   if(IS_ANDROID||IS_IOS){
-    guide="スマホでのおすすめ保存手順\n\n1. 次の印刷プレビューでPDFとして保存します。\n2. 保存したPDFを開き、共有からGoogle Driveを選びます。\n3. 保存先フォルダを選んでアップロードします。\n\nこのあと印刷プレビューを開きます。";
+    guide=modeLabel+"を開きます。\n\nスマホでのおすすめ保存手順\n\n1. 次の印刷プレビューでPDFとして保存します。\n2. 保存したPDFを開き、共有からGoogle Driveを選びます。\n3. 保存先フォルダを選んでアップロードします。\n\nこのあと印刷プレビューを開きます。";
   }else{
-    guide="PCでのおすすめ保存手順\n\n1. 次の印刷画面で「PDFとして保存」を選びます。\n2. 保存先にGoogle Driveフォルダを選びます。\n3. 必要ならファイル名を変更して保存します。\n\nこのあと印刷プレビューを開きます。";
+    guide=modeLabel+"を開きます。\n\nPCでのおすすめ保存手順\n\n1. 次の印刷画面で「PDFとして保存」を選びます。\n2. 保存先にGoogle Driveフォルダを選びます。\n3. 必要ならファイル名を変更して保存します。\n\nこのあと印刷プレビューを開きます。";
   }
   if(!confirm(guide))return;
-  printHishiiPDF();
+  printHishiiPDF(mode);
 }
-function printHishiiPDF(){
+function printHishiiPDF(mode){
   var w=window.open('','_blank');
   if(!w){alert("ポップアップがブロックされました。");return;}
+  var pdfMode=mode==="color"?"color":"print";
+  var isColorPdf=pdfMode==="color";
+  var pdfTheme=isColorPdf?{
+    accent:"#0b57d0",accentDark:"#123c69",border:"#2f66ad",headBg:"#dcecff",subBg:"#f2f7ff",catBg:"#e8f1ff",annualBg:"#fff4d8",remarksBg:"#f4f8ff",sheetBg:"#fff",screenBg:"#e7edf7"
+  }:{
+    accent:"#111",accentDark:"#111",border:"#333",headBg:"#e8e8e8",subBg:"#fafafa",catBg:"#f5f5f5",annualBg:"#e8e8e8",remarksBg:"#e8e8e8",sheetBg:"#fff",screenBg:"#ccc"
+  };
   function v(id){var el=document.getElementById(id);return el?(el.value||''):'';}
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function labelHtml(s){return esc(s).replace(/\n/g,'<br>');}
+  function pdfResultStyle(sym){
+    var map={
+      "○":{c:"#137333",b:"#e7f4ea"},
+      "△":{c:"#b06000",b:"#fff4d8"},
+      "▲":{c:"#b3261e",b:"#fce8e6"},
+      "×":{c:"#c00000",b:"#f9dedc"},
+      "Ⓧ":{c:"#6f42c1",b:"#f1e7ff"},
+      "／":{c:"#666",b:"#f1f3f4"}
+    };
+    var m=map[sym];
+    if(!m)return'';
+    return isColorPdf?' style="color:'+m.c+';background:'+m.b+';font-weight:700;"':' style="color:'+m.c+';font-weight:700;"';
+  }
   function getTawamiRatioData(){
     var sp=parseFloat(v('f-ann-span'));
     var tw=parseFloat(v('f-ann-tawami'));
@@ -1234,7 +1375,7 @@ function printHishiiPDF(){
       if(it.measure&&state.measurements[it.no])desc+='【'+state.measurements[it.no]+'mm】';
       var sym=state.results[it.no]||'○';
       if(equipState.ropeMode==="chain"&&it.group==="rope"&&it.no===5)sym='／';
-      html+='<td class="no">'+it.no+'</td><td class="desc">'+esc(desc)+'</td><td class="cls">'+esc(it.cls)+'</td><td class="res">'+esc(sym)+'</td></tr>';
+      html+='<td class="no">'+it.no+'</td><td class="desc">'+esc(desc)+'</td><td class="cls">'+esc(it.cls)+'</td><td class="res"'+pdfResultStyle(sym)+'>'+esc(sym)+'</td></tr>';
       return html;
     }).join('');
   }
@@ -1286,30 +1427,30 @@ function printHishiiPDF(){
       '</div></div>';
   }
 
-  /* ★ PDFテーマカラーをすべて黒系に統一 ★ */
+  /* ★ PDFテーマ ★ */
   var html='<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>菱井工業 点検検査記録表</title><style>'+
     '*{box-sizing:border-box;margin:0;padding:0;}@page{size:A4 portrait;margin:4mm;}'+
     'body{font-family:"Yu Gothic","Meiryo","Noto Sans JP",sans-serif;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'+
     '.sheet{width:197mm;min-height:285mm;margin:0 auto;padding:0;font-size:7pt;line-height:1.1;}'+
     '.top{display:grid;grid-template-columns:1fr 68mm 1fr;align-items:start;margin-bottom:1mm;}'+
-    '.customer{display:grid;grid-template-columns:1fr auto;align-items:end;gap:4mm;font-size:9pt;border-bottom:1px solid #333;margin-top:4mm;padding-left:5mm;height:8mm;}'+
-    '.title{text-align:center;font-size:14pt;font-weight:700;margin-top:7mm;color:#111;}'+
+    '.customer{display:grid;grid-template-columns:1fr auto;align-items:end;gap:4mm;font-size:9pt;border-bottom:1px solid '+pdfTheme.border+';margin-top:4mm;padding-left:5mm;height:8mm;color:'+pdfTheme.accentDark+';}'+
+    '.title{text-align:center;font-size:14pt;font-weight:700;margin-top:7mm;color:'+pdfTheme.accentDark+';}'+
     '.branches{font-size:6.3pt;line-height:1.18;text-align:right;color:#111;}'+
-    '.company{font-size:8pt;font-weight:700;line-height:1.25;color:#111;}'+
-    '.checks{display:flex;gap:6mm;justify-content:center;font-size:8pt;margin-top:1mm;color:#111;}'+
-    '.box{display:inline-block;width:3mm;height:3mm;border:1px solid #333;vertical-align:-0.4mm;margin-right:1mm;text-align:center;line-height:2.8mm;font-size:6pt;}'+
+    '.company{font-size:8pt;font-weight:700;line-height:1.25;color:'+pdfTheme.accentDark+';}'+
+    '.checks{display:flex;gap:6mm;justify-content:center;font-size:8pt;margin-top:1mm;color:'+pdfTheme.accentDark+';}'+
+    '.box{display:inline-block;width:3mm;height:3mm;border:1px solid '+pdfTheme.border+';vertical-align:-0.4mm;margin-right:1mm;text-align:center;line-height:2.8mm;font-size:6pt;color:'+pdfTheme.accent+';}'+
     '.info{margin-bottom:1mm;}.info-table{width:100%;border-collapse:collapse;table-layout:fixed;}'+
-    '.info-table th,.info-table td{border:1px solid #333;height:4.8mm;padding:0 0.8mm;vertical-align:middle;font-size:7.1pt;color:#111;}'+
-    '.info-table th{text-align:center;font-weight:700;background:#f0f0f0;}'+
+    '.info-table th,.info-table td{border:1px solid '+pdfTheme.border+';height:4.8mm;padding:0 0.8mm;vertical-align:middle;font-size:7.1pt;color:#111;}'+
+    '.info-table th{text-align:center;font-weight:700;background:'+pdfTheme.headBg+';color:'+pdfTheme.accentDark+';}'+
     '.info-table td{text-align:left;}.info-table .center{text-align:center;}'+
-    '.legend{border:1px solid #333;border-bottom:none;padding:0.5mm 1mm;font-size:6.4pt;display:flex;justify-content:space-between;align-items:center;color:#111;}'+
+    '.legend{border:1px solid '+pdfTheme.border+';border-bottom:none;padding:0.5mm 1mm;font-size:6.4pt;display:flex;justify-content:space-between;align-items:center;color:#111;background:'+pdfTheme.subBg+';}'+
     '.equip-note{font-size:5.8pt;color:#444;font-style:italic;}'+
-    '.tawami-summary{border:1px solid #333;border-bottom:none;background:#f5f7fb;padding:0.8mm 1mm;font-size:7pt;display:flex;gap:4mm;align-items:center;color:#111;}'+
-    '.tawami-summary .ts-title{font-weight:700;background:#e8e8e8;border:1px solid #999;padding:0.3mm 1.5mm;}'+
+    '.tawami-summary{border:1px solid '+pdfTheme.border+';border-bottom:none;background:'+pdfTheme.subBg+';padding:0.8mm 1mm;font-size:7pt;display:flex;gap:4mm;align-items:center;color:#111;}'+
+    '.tawami-summary .ts-title{font-weight:700;background:'+pdfTheme.headBg+';border:1px solid '+pdfTheme.border+';padding:0.3mm 1.5mm;color:'+pdfTheme.accentDark+';}'+
     '.main{display:grid;grid-template-columns:97.8mm 97.8mm;gap:1.4mm;}'+
     'table{border-collapse:collapse;width:100%;table-layout:fixed;}'+
-    '.items th,.items td{border:1px solid #333;vertical-align:middle;color:#111;}'+
-    '.items th{height:4.8mm;font-size:6.8pt;font-weight:700;text-align:center;background:#e8e8e8;}'+
+    '.items th,.items td{border:1px solid '+pdfTheme.border+';vertical-align:middle;color:#111;}'+
+    '.items th{height:4.8mm;font-size:6.8pt;font-weight:700;text-align:center;background:'+pdfTheme.headBg+';color:'+pdfTheme.accentDark+';}'+
     '.items td{height:5.02mm;font-size:6.55pt;padding:0.1mm 0.5mm;}'+
     '.items-l col.catcol,.items-r col.catcol{width:7.8mm}'+
     '.items-l col.subcol,.items-r col.subcol{width:7.5mm}'+
@@ -1317,26 +1458,26 @@ function printHishiiPDF(){
     '.items-l col.desccol,.items-r col.desccol{width:59.7mm}'+
     '.items-l col.clscol,.items-r col.clscol{width:6.8mm}'+
     '.items-l col.rescol,.items-r col.rescol{width:10mm}'+
-    '.cat{writing-mode:vertical-rl;text-orientation:upright;text-align:center;font-weight:700;padding:0.5mm 0;line-height:1;background:#f5f5f5;}'+
-    '.sub{text-align:center;font-size:6.4pt;line-height:1.05;font-weight:600;background:#fafafa;}'+
+    '.cat{writing-mode:vertical-rl;text-orientation:upright;text-align:center;font-weight:700;padding:0.5mm 0;line-height:1;background:'+pdfTheme.catBg+';color:'+pdfTheme.accentDark+';}'+
+    '.sub{text-align:center;font-size:6.4pt;line-height:1.05;font-weight:600;background:'+pdfTheme.subBg+';}'+
     '.no,.cls,.res{text-align:center;font-weight:700;}.desc{line-height:1.1;}.res{font-size:8pt;}'+
-    '.annual{margin-top:0.6mm;}.annual th,.annual td{border:1px solid #333;height:4.85mm;font-size:6.35pt;text-align:center;vertical-align:middle;padding:0.1mm 0.45mm;color:#111;}'+
-    '.annual th{background:#e8e8e8;}'+
-    '.annual-title{text-align:left!important;padding-left:2mm!important;font-weight:700;background:#e8e8e8;}'+
+    '.annual{margin-top:0.6mm;}.annual th,.annual td{border:1px solid '+pdfTheme.border+';height:4.85mm;font-size:6.35pt;text-align:center;vertical-align:middle;padding:0.1mm 0.45mm;color:#111;}'+
+    '.annual th{background:'+pdfTheme.headBg+';}'+
+    '.annual-title{text-align:left!important;padding-left:2mm!important;font-weight:700;background:'+pdfTheme.annualBg+';color:'+pdfTheme.accentDark+';}'+
     '.annual-label{font-weight:700;}.input-cell{font-weight:700;}.memo{text-align:left!important;height:6mm!important;vertical-align:top!important;padding:0.5mm 0.8mm!important;}'+
     /* ★ 補足欄スタイル ★ */
-    '.remarks-section{margin-top:1.2mm;border:1px solid #333;}'+
-    '.remarks-section .remarks-title{background:#e8e8e8;font-size:6.8pt;font-weight:700;padding:0.6mm 1.5mm;border-bottom:1px solid #333;color:#111;}'+
+    '.remarks-section{margin-top:1.2mm;border:1px solid '+pdfTheme.border+';}'+
+    '.remarks-section .remarks-title{background:'+pdfTheme.remarksBg+';font-size:6.8pt;font-weight:700;padding:0.6mm 1.5mm;border-bottom:1px solid '+pdfTheme.border+';color:'+pdfTheme.accentDark+';}'+
     '.remarks-section .remarks-body{font-size:6.8pt;padding:1mm 1.5mm;min-height:10mm;line-height:1.6;color:#111;word-break:break-all;white-space:pre-wrap;}'+
     '.bottom-block{display:grid;grid-template-columns:1fr;align-items:end;margin-top:1.2mm;gap:1mm;}'+
     '.inspector-block{display:flex;align-items:flex-end;gap:2mm;font-size:7pt;color:#111;min-width:0;}'+
     '.inspector-label{white-space:nowrap;font-weight:700;padding-bottom:0.5mm;}'+
-    '.inspector-line{display:inline-block;width:36mm;border-bottom:1px solid #333;height:5mm;line-height:5mm;text-align:center;font-size:8pt;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}'+
+    '.inspector-line{display:inline-block;width:36mm;border-bottom:1px solid '+pdfTheme.border+';height:5mm;line-height:5mm;text-align:center;font-size:8pt;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}'+
     '.date-line{display:flex;align-items:flex-end;justify-content:flex-end;gap:1.5mm;font-size:7pt;white-space:nowrap;color:#111;}'+
-    '.date-line .dl{display:inline-block;min-width:10mm;border-bottom:1px solid #333;height:5mm;line-height:5mm;text-align:center;}'+
+    '.date-line .dl{display:inline-block;min-width:10mm;border-bottom:1px solid '+pdfTheme.border+';height:5mm;line-height:5mm;text-align:center;}'+
     '.note{text-align:center;font-size:5.7pt;margin-top:0.8mm;line-height:1;color:#333;}'+
     '@media print{html,body{width:210mm;height:297mm;overflow:hidden;}.sheet{height:289mm;overflow:hidden;page-break-inside:avoid;}.back-btn{display:none!important;}}'+
-    '@media screen{body{background:#ccc;padding:10px;}.sheet{background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.22);padding:5mm;}.back-btn{position:fixed;top:10px;left:10px;padding:8px 20px;font-size:14px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;z-index:999;}}'+
+    '@media screen{body{background:'+pdfTheme.screenBg+';padding:10px;}.sheet{background:'+pdfTheme.sheetBg+';box-shadow:0 2px 14px rgba(0,0,0,.22);padding:5mm;}.back-btn{position:fixed;top:10px;left:10px;padding:8px 20px;font-size:14px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;z-index:999;}}'+
     '</style></head><body>'+
     '<div class="sheet">'+
     '<div class="top">'+
@@ -1411,7 +1552,7 @@ function saveSettings(){
   alert("設定を保存しました");
 }
 function showHelp(){
-  alert("【使い方】\n\n■ 機器選択（点検項目カード上部）\n　No.1〜4：「無線機＋押釦SW」「無線機のみ」「押釦SWのみ」の3択\n　No.5〜8：「ワイヤーロープ」「チェーン」の2択\n\n■ 音声コマンド\n「5は黒」→▲　「10ばつ」→×　「12処置済」→Ⓧ　「15該当なし」→／\n「1から4まで黒」→1〜4番を▲\n「摩耗12.5」→6番の摩耗計測値 12.5mm\n\n■ 補足欄\n点検項目の補足・特記事項はPDFにも反映されます。\n\n■ PDF/印刷\nPC：PDFとして保存 → Google Driveフォルダを選択\nスマホ：PDF保存後、共有からGoogle Driveへ保存");
+  alert("【使い方】\n\n■ 機器選択（点検項目カード上部）\n　No.1〜4：「無線機＋押釦SW」「無線機のみ」「押釦SWのみ」の3択\n　No.5〜8：「ワイヤーロープ」「チェーン」の2択\n\n■ 音声コマンド\n「5は黒」→▲　「10ばつ」→×　「12処置済」→Ⓧ　「15該当なし」→／\n「1から4まで黒」→1〜4番を▲\n「摩耗12.5」→6番の摩耗計測値 12.5mm\n\n■ 補足欄\n点検項目の補足・特記事項はPDFにも反映されます。\n\n■ PDF/印刷\nカラーPDF：顧客送付向けの色付きPDF\n印刷PDF：紙印刷向けの黒基調PDF\nPC：PDFとして保存 → Google Driveフォルダを選択\nスマホ：PDF保存後、共有からGoogle Driveへ保存");
 }
 
 function init(){
