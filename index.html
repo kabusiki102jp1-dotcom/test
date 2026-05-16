@@ -364,6 +364,7 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 
   <div class="toolbar no-print">
     <button class="primary" onclick="saveRecord()">💾 保存</button>
+    <button id="btn-send-estimate" onclick="sendToEstimate()" style="background:#e8700a;color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">🔧 修理見積作成</button>
     <button onclick="printHishiiPDFWithDriveGuide('color')">🌈 カラーPDF</button>
     <button onclick="printHishiiPDFWithDriveGuide('print')">🖨 印刷PDF</button>
     <button onclick="exportJSON()">⬇ JSONバックアップ</button>
@@ -1234,6 +1235,29 @@ function loadRecord(id){var r=getRecords().find(function(x){return x.id===id;});
 function deleteRecord(id){if(!confirm("この記録を削除しますか？"))return;setRecords(getRecords().filter(function(x){return x.id!==id;}));renderSavedList();}
 function downloadFile(name,content,mime){var blob=new Blob([content],{type:mime||"application/json"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1000);}
 function exportJSON(){var d=collectFormData();downloadFile("点検_"+(d.customer||"no-name")+"_"+(d.date||localDateString())+".json",JSON.stringify(d,null,2));}
+
+function sendToEstimate(){
+  var defects=[];
+  ITEMS.forEach(function(item){
+    var r=state.results[item.no];
+    if(r==="×"||r==="▲")defects.push({no:item.no,cat:item.cat,desc:item.desc,result:r});
+  });
+  if(defects.length===0){
+    if(!confirm("不具合箇所（▲・×）が見つかりません。\nそのまま見積アプリを開きますか？"))return;
+  }
+  var bridge={
+    customer:document.getElementById("f-customer").value,
+    location:document.getElementById("f-location").value,
+    date:document.getElementById("f-date").value,
+    hoist_type:document.getElementById("f-hoist-type").value,
+    hoist_no:document.getElementById("f-hoist-no").value,
+    crane_no:(document.getElementById("f-crane-no")||{}).value||"",
+    defects:defects
+  };
+  localStorage.setItem("hishii_bridge_v1",JSON.stringify(bridge));
+  var w=window.open("./菱井工業_見積アプリ/hishii_estimate_v62r.html","_blank");
+  if(!w)alert("ポップアップがブロックされました。\nブラウザのポップアップ許可設定を確認してください。");
+}
 function exportOne(id){var r=getRecords().find(function(x){return x.id===id;});if(!r)return;downloadFile("点検_"+(r.customer||"no-name")+"_"+recordDate(r)+".json",JSON.stringify(r,null,2));}
 function exportAllJSON(){downloadFile("hishii_全点検記録_"+localDateString()+".json",JSON.stringify(getRecords(),null,2));}
 function importJSON(e){
