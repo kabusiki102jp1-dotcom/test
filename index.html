@@ -147,6 +147,7 @@ table.items input.measure-input { width: 64px; padding: 3px 5px; border: 1px sol
 .toolbar button { flex: 1; min-width: 120px; background: #fff; color: #1a73e8; border: 1px solid #1a73e8; padding: 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; min-height: 44px; }
 .toolbar button.primary { background: #1a73e8; color: #fff; }
 .toolbar button.danger { background: #fff; color: #d93025; border-color: #d93025; }
+.autosave-status { flex-basis: 100%; font-size: 12px; color: #666; text-align: right; padding: 0 2px; min-height: 18px; }
 .help-box { background: #fff8e1; border-left: 4px solid #ffb300; padding: 10px 12px; margin-bottom: 12px; border-radius: 4px; font-size: 12px; line-height: 1.6; }
 .help-box strong { color: #e65100; }
 .list-saved { list-style: none; padding: 0; margin: 0; }
@@ -351,9 +352,10 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 
   <div class="toolbar no-print">
     <button class="primary" onclick="saveRecord()">💾 保存</button>
-    <button onclick="printHishiiPDF()">🖨 PDF/印刷</button>
+    <button onclick="printHishiiPDFWithDriveGuide()">🖨 PDF/印刷</button>
     <button onclick="exportJSON()">⬇ JSONバックアップ</button>
     <button class="danger" onclick="resetForm()">🗑 入力リセット</button>
+    <div class="autosave-status" id="autosave-status">入力中の内容は自動で一時保存されます</div>
   </div>
 </div>
 
@@ -507,11 +509,13 @@ function onMusenChange(val){
   equipState.musenMode=val;
   ["both","musen","oshibtn"].forEach(function(v){var el=document.getElementById("esb-musen-"+v);if(el)el.classList.toggle("active",v===val);});
   renderTable();
+  scheduleDraftSave();
 }
 function onRopeChange(val){
   equipState.ropeMode=val;
   ["wire","chain"].forEach(function(v){var el=document.getElementById("esb-rope-"+v);if(el)el.classList.toggle("active",v===val);});
   renderTable();
+  scheduleDraftSave();
 }
 
 /* ===== 点検項目定義 ===== */
@@ -619,7 +623,7 @@ function renderTable(){
     s.addEventListener("click",(function(no){return function(){openModal(no);};})(parseInt(s.getAttribute("data-no"))));
   });
   t.querySelectorAll(".measure-input").forEach(function(inp){
-    inp.addEventListener("input",(function(no){return function(e){state.measurements[no]=e.target.value;updateSummary();};})(parseInt(inp.getAttribute("data-measure-no"))));
+    inp.addEventListener("input",(function(no){return function(e){state.measurements[no]=e.target.value;updateSummary();scheduleDraftSave();};})(parseInt(inp.getAttribute("data-measure-no"))));
   });
   updateSummary();
 }
@@ -631,12 +635,14 @@ function setItemResult(no,sym){
   var row=document.getElementById("row-"+no);
   if(row){row.classList.add("highlight");setTimeout(function(){row.classList.remove("highlight");},1200);row.scrollIntoView({behavior:"smooth",block:"center"});}
   updateSummary();
+  scheduleDraftSave();
 }
 function setItemMeasurement(no,value){
   state.measurements[no]=value;
   var el=document.getElementById("measure-"+no);if(el)el.value=value;
   var row=document.getElementById("row-"+no);
   if(row){row.classList.add("highlight");setTimeout(function(){row.classList.remove("highlight");},1200);row.scrollIntoView({behavior:"smooth",block:"center"});}
+  scheduleDraftSave();
 }
 
 /* ===== サマリー ===== */
@@ -670,7 +676,7 @@ function handlePhotoInput(e){
   var remaining=MAX_PHOTOS-state.photos.length;
   if(remaining<=0){alert("写真は最大"+MAX_PHOTOS+"枚までです。");e.target.value="";return;}
   files=files.slice(0,remaining);var loaded=0;
-  files.forEach(function(file){compressImage(file,1280,0.82,function(dataUrl){state.photos.push({dataUrl:dataUrl,caption:""});loaded++;if(loaded===files.length)renderPhotoGrid();});});
+  files.forEach(function(file){compressImage(file,1280,0.82,function(dataUrl){state.photos.push({dataUrl:dataUrl,caption:""});loaded++;if(loaded===files.length){renderPhotoGrid();scheduleDraftSave();}});});
   e.target.value="";
 }
 function compressImage(file,maxWidth,quality,callback){
@@ -686,8 +692,8 @@ function renderPhotoGrid(){
     return'<div class="photo-item"><img src="'+p.dataUrl+'" alt="写真'+(i+1)+'" loading="lazy"><button class="photo-del" onclick="deletePhoto('+i+')">✕</button><div class="photo-caption"><input class="photo-caption-edit" type="text" value="'+escHtml(p.caption)+'" placeholder="コメント" onchange="updateCaption('+i+',this.value)" oninput="updateCaption('+i+',this.value)"></div></div>';
   }).join("");
 }
-function deletePhoto(i){if(!confirm("この写真を削除しますか？"))return;state.photos.splice(i,1);renderPhotoGrid();}
-function updateCaption(i,val){if(state.photos[i])state.photos[i].caption=val;}
+function deletePhoto(i){if(!confirm("この写真を削除しますか？"))return;state.photos.splice(i,1);renderPhotoGrid();scheduleDraftSave();}
+function updateCaption(i,val){if(state.photos[i]){state.photos[i].caption=val;scheduleDraftSave();}}
 
 /* ===== タワミ比 ===== */
 function updateTawamiRatio(){
@@ -757,6 +763,7 @@ function startRecognition(){
         var cor=applyVoiceCorrections(final.trim());
         ta.value=(ta.value?(ta.value+"\n"):"")+cor;
         state.itemsRemarks=ta.value;
+        scheduleDraftSave();
         setStatus("認識: "+final,"→ 補足欄に追記");
         if(!recognition.continuous)recognition.stop();
       } else if(voiceTarget){
@@ -764,6 +771,7 @@ function startRecognition(){
         if(el){
           if(el.type==="number"){var norm=final.replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xFEE0);});var nm=norm.match(/\d+(?:\.\d+)?/);if(nm){el.value=nm[0];el.dispatchEvent(new Event("input"));}}
           else{var cor2=applyVoiceCorrections(final.trim());el.value=(el.value?el.value+" ":"")+cor2;}
+          scheduleDraftSave();
         }
         setStatus("認識: "+final,"→ "+voiceTarget+"に入力");
         if(!recognition.continuous)recognition.stop();
@@ -795,9 +803,9 @@ function parseVoiceCommand(raw){
 }
 function applyCommand(c){
   if(c.type==="item"&&c.no>=1&&c.no<=59){setItemResult(c.no,c.sym);setStatus(document.getElementById("voice-heard").textContent,"→ "+c.no+"番を "+c.sym+" に変更");}
-  else if(c.type==="cert-check"){document.getElementById("f-cert-check").checked=true;setStatus(document.getElementById("voice-heard").textContent,"→ 検査証確認 ☑");}
+  else if(c.type==="cert-check"){document.getElementById("f-cert-check").checked=true;scheduleDraftSave();setStatus(document.getElementById("voice-heard").textContent,"→ 検査証確認 ☑");}
   else if(c.type==="measure"){setItemMeasurement(c.no,c.value);setStatus(document.getElementById("voice-heard").textContent,"→ "+c.no+"番 摩耗 "+c.value+"mm");}
-  else if(c.type==="ann"){var el=document.getElementById(c.target);if(el)el.value=c.value;if(c.target==="f-ann-span"||c.target==="f-ann-tawami")updateTawamiRatio();setStatus(document.getElementById("voice-heard").textContent,"→ "+c.target+" = "+c.value);}
+  else if(c.type==="ann"){var el=document.getElementById(c.target);if(el)el.value=c.value;if(c.target==="f-ann-span"||c.target==="f-ann-tawami")updateTawamiRatio();scheduleDraftSave();setStatus(document.getElementById("voice-heard").textContent,"→ "+c.target+" = "+c.value);}
 }
 
 /* ===== 音声補正辞書 ===== */
@@ -813,9 +821,67 @@ function resetCorrections(){if(!confirm("デフォルトに戻しますか？"))
 
 /* ===== データ保存・読込 ===== */
 var STORAGE_KEY="hishii_records_v1",SETTINGS_KEY="hishii_settings_v1";
+var DRAFT_KEY="hishii_current_draft_v1",draftSaveTimer=null,draftRestoring=false,draftWatchStarted=false;
 function getRecords(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");}catch(e){return[];}}
 function setRecords(r){localStorage.setItem(STORAGE_KEY,JSON.stringify(r));}
 function recordDate(r){if(r.date)return r.date;var d=r.saved_at?new Date(r.saved_at):new Date();if(isNaN(d.getTime()))d=new Date();return localDateString(d);}
+
+function updateDraftStatus(text){
+  var el=document.getElementById("autosave-status");
+  if(el)el.textContent=text||"入力中の内容は自動で一時保存されます";
+}
+function isMeaningfulDraft(d){
+  if(!d)return false;
+  var fields=["customer","location","staff","date","class_month","hoist_type","hoist_no","crane_no","crane_type","saddle","cert_no","cert_exp","wire_date","inspector1","inspector2","inspector3","items_remarks"];
+  if(fields.some(function(k){return String(d[k]||"").trim()!=="";}))return true;
+  if(d.cert_check)return true;
+  if(d.photos&&d.photos.length)return true;
+  if(d.results&&ITEMS.some(function(it){return d.results[it.no]&&d.results[it.no]!=="○";}))return true;
+  if(d.measurements&&Object.keys(d.measurements).some(function(k){return String(d.measurements[k]||"").trim()!=="";}))return true;
+  var a=d.annual_data||{};
+  return Object.keys(a).some(function(k){return String(a[k]||"").trim()!=="";});
+}
+function saveDraftNow(){
+  if(draftRestoring)return;
+  try{
+    var d=collectFormData();
+    if(!isMeaningfulDraft(d)){localStorage.removeItem(DRAFT_KEY);updateDraftStatus();return;}
+    d.draft_saved_at=new Date().toISOString();
+    localStorage.setItem(DRAFT_KEY,JSON.stringify(d));
+    updateDraftStatus("下書き保存済み "+new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"}));
+  }catch(e){updateDraftStatus("下書き保存に失敗しました");}
+}
+function scheduleDraftSave(){
+  clearTimeout(draftSaveTimer);
+  draftSaveTimer=setTimeout(saveDraftNow,600);
+}
+function clearDraft(message){
+  clearTimeout(draftSaveTimer);
+  localStorage.removeItem(DRAFT_KEY);
+  updateDraftStatus(message||"下書きを削除しました");
+}
+function restoreDraftIfAvailable(){
+  try{
+    var d=JSON.parse(localStorage.getItem(DRAFT_KEY)||"null");
+    if(!isMeaningfulDraft(d)){localStorage.removeItem(DRAFT_KEY);updateDraftStatus();return;}
+    if(confirm("前回の未保存入力があります。復元しますか？")){
+      draftRestoring=true;
+      try{loadFormData(d);}finally{draftRestoring=false;}
+      updateDraftStatus("前回の下書きを復元しました");
+    }else{
+      updateDraftStatus("前回の下書きがあります");
+    }
+  }catch(e){localStorage.removeItem(DRAFT_KEY);updateDraftStatus();}
+}
+function isDraftTarget(el){
+  return el&&el.closest&&(el.closest("#tab-form")||el.closest("#tab-photo"));
+}
+function initDraftAutosave(){
+  if(draftWatchStarted)return;
+  draftWatchStarted=true;
+  document.addEventListener("input",function(e){if(isDraftTarget(e.target))scheduleDraftSave();});
+  document.addEventListener("change",function(e){if(isDraftTarget(e.target))scheduleDraftSave();});
+}
 
 function collectFormData(){
   /* 補足欄の最新値を state に同期 */
@@ -912,6 +978,8 @@ function saveRecord(){
   var records=getRecords();var idx=records.findIndex(function(r){return r.id===d.id;});
   if(idx>=0)records[idx]=d;else records.unshift(d);
   setRecords(records);state.currentRecordId=d.id;state.currentRecordSavedAt=d.saved_at;
+  clearDraft("保存済みです。下書きは削除しました");
+  renderSavedList();
   alert((idx>=0?"上書き保存しました：":"保存しました：")+( d.customer||"(顧客名なし)")+" / "+(d.date||""));
 }
 function resetForm(){
@@ -930,6 +998,7 @@ function resetForm(){
   var ta=document.getElementById("f-items-remarks");if(ta)ta.value="";
   document.getElementById("f-date").value=localDateString();
   renderTable();updateTawamiRatio();renderPhotoGrid();
+  clearDraft("入力をリセットしました");
 }
 
 function renderSavedList(){
@@ -961,12 +1030,28 @@ function importJSON(e){
 }
 
 /* ===== PDF印刷（黒色テーマ） ===== */
+function printHishiiPDFWithDriveGuide(){
+  var guide;
+  if(IS_ANDROID||IS_IOS){
+    guide="スマホでのおすすめ保存手順\n\n1. 次の印刷プレビューでPDFとして保存します。\n2. 保存したPDFを開き、共有からGoogle Driveを選びます。\n3. 保存先フォルダを選んでアップロードします。\n\nこのあと印刷プレビューを開きます。";
+  }else{
+    guide="PCでのおすすめ保存手順\n\n1. 次の印刷画面で「PDFとして保存」を選びます。\n2. 保存先にGoogle Driveフォルダを選びます。\n3. 必要ならファイル名を変更して保存します。\n\nこのあと印刷プレビューを開きます。";
+  }
+  if(!confirm(guide))return;
+  printHishiiPDF();
+}
 function printHishiiPDF(){
   var w=window.open('','_blank');
   if(!w){alert("ポップアップがブロックされました。");return;}
   function v(id){var el=document.getElementById(id);return el?(el.value||''):'';}
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function labelHtml(s){return esc(s).replace(/\n/g,'<br>');}
+  function inspectionDateParts(){
+    var m=v('f-date').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(!m)return{year:"",month:"",day:""};
+    var y=parseInt(m[1],10),month=parseInt(m[2],10),day=parseInt(m[3],10);
+    return{year:y>=2019?String(y-2018):String(y),month:String(month),day:String(day)};
+  }
   function getPdfLabel(item){
     if(item.group!=="rope")return getEffectiveLabel(item);
     if(equipState.ropeMode==="wire")return{cat:"ワイヤーロープ\nチェーン／",sub:"ワイヤーロープ"};
@@ -993,14 +1078,20 @@ function printHishiiPDF(){
   }
 
   var kubun=v('f-class-month');
+  var inspectionDate=inspectionDateParts();
   var isAnnual=kubun.indexOf('年次')>=0;
   var isMonthly=kubun==='A'||kubun==='ABC'||isAnnual;
-  var inspectors=[v('f-inspector1'),v('f-inspector2'),v('f-inspector3')].filter(function(s){return s.trim()!=='';});
+  var inspectors=[v('f-inspector1'),v('f-inspector2'),v('f-inspector3')];
+  var inspectorText=inspectors.filter(function(s){return s.trim()!=='';}).join('、');
   var leftRows=itemRowsPdf(ITEMS.slice(0,39));
   var rightRows=itemRowsPdf(ITEMS.slice(39));
   var musenLbl=getMusenLabel();
   var ropeLbl=getRopeLabel();
   var equipNote='No.1〜4: '+esc(musenLbl.sub)+'　／　No.5〜8: '+esc(ropeLbl.sub);
+  var settings=getSettings();
+  var branchHtml='<div class="company">菱井工業株式会社</div>'+
+    esc(settings.addr1)+'<br>'+esc(settings.tel1)+'<br>'+
+    esc(settings.addr2)+'<br>'+esc(settings.addr3);
 
   /* ★ 補足欄テキスト：改行をBRに変換 ★ */
   var remarksText=state.itemsRemarks||(document.getElementById("f-items-remarks")?document.getElementById("f-items-remarks").value:"");
@@ -1068,11 +1159,11 @@ function printHishiiPDF(){
     '.remarks-section{margin-top:1.2mm;border:1px solid #333;}'+
     '.remarks-section .remarks-title{background:#e8e8e8;font-size:6.8pt;font-weight:700;padding:0.6mm 1.5mm;border-bottom:1px solid #333;color:#111;}'+
     '.remarks-section .remarks-body{font-size:6.8pt;padding:1mm 1.5mm;min-height:10mm;line-height:1.6;color:#111;word-break:break-all;white-space:pre-wrap;}'+
-    '.bottom-block{display:grid;grid-template-columns:1fr auto;align-items:end;margin-top:1.2mm;gap:2mm;}'+
-    '.inspector-block{display:flex;align-items:flex-end;gap:3mm;font-size:7pt;color:#111;}'+
+    '.bottom-block{display:grid;grid-template-columns:1fr;align-items:end;margin-top:1.2mm;gap:1mm;}'+
+    '.inspector-block{display:flex;align-items:flex-end;gap:2mm;font-size:7pt;color:#111;min-width:0;}'+
     '.inspector-label{white-space:nowrap;font-weight:700;padding-bottom:0.5mm;}'+
-    '.inspector-line{display:inline-block;min-width:38mm;border-bottom:1px solid #333;height:5mm;line-height:5mm;text-align:center;font-size:8pt;font-weight:600;}'+
-    '.date-line{display:flex;align-items:flex-end;gap:1.5mm;font-size:7pt;white-space:nowrap;color:#111;}'+
+    '.inspector-line{display:inline-block;width:36mm;border-bottom:1px solid #333;height:5mm;line-height:5mm;text-align:center;font-size:8pt;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}'+
+    '.date-line{display:flex;align-items:flex-end;justify-content:flex-end;gap:1.5mm;font-size:7pt;white-space:nowrap;color:#111;}'+
     '.date-line .dl{display:inline-block;min-width:10mm;border-bottom:1px solid #333;height:5mm;line-height:5mm;text-align:center;}'+
     '.note{text-align:center;font-size:5.7pt;margin-top:0.8mm;line-height:1;color:#333;}'+
     '@media print{html,body{width:210mm;height:297mm;overflow:hidden;}.sheet{height:289mm;overflow:hidden;page-break-inside:avoid;}.back-btn{display:none!important;}}'+
@@ -1083,9 +1174,7 @@ function printHishiiPDF(){
       '<div class="customer"><span>'+esc(v('f-customer'))+'</span><span>殿</span></div>'+
       '<div><div class="title">ホイスト・クレーン<br>点検検査記録表</div>'+
         '<div class="checks"><span><span class="box">'+(isAnnual?'✓':'')+'</span>年次</span><span><span class="box">'+(isMonthly?'✓':'')+'</span>月例</span></div></div>'+
-      '<div class="branches"><div class="company">菱井工業株式会社</div>'+
-        '本社〒578-0967大阪府東大阪市新鴻池町2番2号<br>TEL072-961-1565（代）FAX072-963-6159<br>'+
-        '関東営業所〒272-0024千葉県浦安市港76番16号<br>九州営業所〒810-0075福岡市中央区港2丁目3-13</div>'+
+      '<div class="branches">'+branchHtml+'</div>'+
     '</div>'+
     '<div class="info"><table class="info-table">'+
       '<colgroup><col style="width:15.5%"><col style="width:21.5%"><col style="width:13%"><col style="width:29%"><col style="width:7%"><col style="width:7%"><col style="width:3%"><col style="width:4%"></colgroup>'+
@@ -1093,7 +1182,7 @@ function printHishiiPDF(){
       '<tr><th>ﾎｲｽﾄ機番</th><td>'+esc(v('f-hoist-no'))+'</td><td colspan="2" rowspan="3"></td><td colspan="2" rowspan="3"></td></tr>'+
       '<tr><th>クレーン番号</th><td>'+esc(v('f-crane-no'))+'</td><th>検　査　証　番　号</th><td>'+esc(v('f-cert-no'))+'</td></tr>'+
       '<tr><th>クレーン種類</th><td>'+esc(v('f-crane-type'))+'</td><th>検　査　証　期　限</th><td class="center">'+esc(v('f-cert-exp'))+'</td></tr>'+
-      '<tr><th>サドル形式、機番</th><td>'+esc(v('f-saddle'))+'</td><th>ワイヤー取替履歴</th><td class="center">'+esc(v('f-wire-date'))+'</td><td colspan="4"></td></tr>'+
+      '<tr><th>サドル形式、機番</th><td>'+esc(v('f-saddle'))+'</td><th>ワイヤー取替履歴</th><td class="center">'+esc(v('f-wire-date'))+'</td><th>点検者</th><td colspan="3" style="font-size:8pt;font-weight:700;line-height:1.35;">'+esc(inspectorText)+'</td></tr>'+
     '</table></div>'+
     '<div class="legend">'+
       '<span>（記号説明　○…良好　△…要注意　▲…要修理　×…不良　Ⓧ…処置実施　／…区分外、該当なし）</span>'+
@@ -1101,87 +1190,4 @@ function printHishiiPDF(){
     '</div>'+
     '<div class="main">'+
       '<div><table class="items items-l"><colgroup><col class="catcol"><col class="subcol"><col class="nocol"><col class="desccol"><col class="clscol"><col class="rescol"></colgroup>'+
-        '<thead><tr><th colspan="4">点　検　項　目</th><th>区分</th><th>良否</th></tr></thead><tbody>'+leftRows+'</tbody></table></div>'+
-      '<div><table class="items items-r"><colgroup><col class="catcol"><col class="subcol"><col class="nocol"><col class="desccol"><col class="clscol"><col class="rescol"></colgroup>'+
-        '<thead><tr><th colspan="4">点　検　項　目</th><th>区分</th><th>良否</th></tr></thead><tbody>'+rightRows+'</tbody></table>'+
-        '<table class="annual">'+annualRows+'</table></div>'+
-    '</div>'+
-    /* ★ PDF補足欄ブロック ★ */
-    '<div class="remarks-section">'+
-      '<div class="remarks-title">📝 点検項目 補足・特記事項</div>'+
-      '<div class="remarks-body">'+remarksPdfHtml+'</div>'+
-    '</div>'+
-    '<div class="bottom-block">'+inspectorLineHtml+
-      '<div class="date-line"><span>点検日</span><span>令和</span><span class="dl"></span><span>年</span><span class="dl"></span><span>月</span><span class="dl"></span><span>日</span></div>'+
-    '</div>'+
-    '<div class="note">本報告書はクレーン等安全規則第3節第38条により3年間保管願います。　菱井工業株式会社</div>'+
-    '</div>'+
-    photoPageHtml+
-    '<button class="back-btn" onclick="window.close()">← 閉じる</button>'+
-    '<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},400);};</scr'+'ipt>'+
-    '</body></html>';
-  w.document.write(html);w.document.close();
-}
-
-/* ===== 設定 ===== */
-function loadSettings(){
-  try{var s=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"{}");
-    if(s.addr1)document.getElementById("set-addr1").value=s.addr1;
-    if(s.tel1)document.getElementById("set-tel1").value=s.tel1;
-    if(s.addr2)document.getElementById("set-addr2").value=s.addr2;
-    if(s.addr3)document.getElementById("set-addr3").value=s.addr3;
-  }catch(e){}
-}
-function saveSettings(){
-  localStorage.setItem(SETTINGS_KEY,JSON.stringify({addr1:document.getElementById("set-addr1").value,tel1:document.getElementById("set-tel1").value,addr2:document.getElementById("set-addr2").value,addr3:document.getElementById("set-addr3").value}));
-  alert("設定を保存しました");
-}
-function showHelp(){
-  alert("【使い方】\n\n■ 機器選択（点検項目カード上部）\n　No.1〜4：「無線機＋押釦SW」「無線機のみ」「押釦SWのみ」の3択\n　No.5〜8：「ワイヤーロープ」「チェーン」の2択\n\n■ 音声コマンド\n「5は黒」→▲　「10ばつ」→×　「12処置済」→Ⓧ　「15該当なし」→／\n「1から4まで黒」→1〜4番を▲\n「摩耗12.5」→6番の摩耗計測値 12.5mm\n\n■ 補足欄\n点検項目の補足・特記事項はPDFにも反映されます。\n\n■ PDF/印刷\nChrome →「PDFとして保存」");
-}
-
-function init(){
-  updateOnlineStatus();
-  if(!document.getElementById("f-date").value)document.getElementById("f-date").value=localDateString();
-  renderTable();
-  updateSummary();
-  renderPhotoGrid();
-  renderSavedList();
-  loadSettings();
-  renderCorrectionsTable();
-  updateTawamiRatio();
-
-  var infoEl=document.getElementById("voice-support-info");
-  var noteEl=document.getElementById("voice-note");
-  var micBtn=document.getElementById("main-mic");
-  if(!SPEECH_SUPPORTED){
-    document.querySelectorAll(".voice-mini").forEach(function(b){b.classList.add("unsupported");});
-    if(micBtn)micBtn.classList.add("unsupported");
-    if(noteEl)noteEl.classList.add("show");
-    if(infoEl)infoEl.textContent="このブラウザは音声認識に対応していません。Google Chromeをお使いください。";
-  }else{
-    if(infoEl){
-      var env=IS_ANDROID?"Android "+(IS_CHROME?"Chrome OK":"Chrome推奨"):IS_IOS?"iPhone/iPad Safari":IS_CHROME?"PC Chrome":"PC";
-      infoEl.textContent="動作環境: "+env;
-    }
-    if(micBtn)micBtn.addEventListener("click",startMain);
-  }
-
-  var kubunBtn=document.getElementById("voice-kubun-btn");
-  if(kubunBtn)kubunBtn.addEventListener("click",function(){if(SPEECH_SUPPORTED)startKubunVoice();});
-  var remarksBtn=document.getElementById("voice-items-remarks-btn");
-  if(remarksBtn)remarksBtn.addEventListener("click",function(){if(SPEECH_SUPPORTED)startRemarksVoice();});
-  document.querySelectorAll(".voice-mini[data-voice]").forEach(function(b){
-    b.addEventListener("click",function(){if(SPEECH_SUPPORTED)startInputVoice(b.dataset.voice);});
-  });
-
-  var remarks=document.getElementById("f-items-remarks");
-  if(remarks)remarks.addEventListener("input",function(){state.itemsRemarks=remarks.value;});
-  document.getElementById("f-ann-span").addEventListener("input",updateTawamiRatio);
-  document.getElementById("f-ann-tawami").addEventListener("input",updateTawamiRatio);
-}
-
-if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",init);}else{init();}
-</script>
-</body>
-</html>
+        '<thead><tr><th colspan="4">点　検　項　目</th><th>区分</th><th>良否</th></tr></thead><tbody>'
