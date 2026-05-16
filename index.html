@@ -1190,4 +1190,104 @@ function printHishiiPDF(){
     '</div>'+
     '<div class="main">'+
       '<div><table class="items items-l"><colgroup><col class="catcol"><col class="subcol"><col class="nocol"><col class="desccol"><col class="clscol"><col class="rescol"></colgroup>'+
-        '<thead><tr><th colspan="4">点　検　項　目</th><th>区分</th><th>良否</th></tr></thead><tbody>'
+        '<thead><tr><th colspan="4">点　検　項　目</th><th>区分</th><th>良否</th></tr></thead><tbody>'+leftRows+'</tbody></table></div>'+
+      '<div><table class="items items-r"><colgroup><col class="catcol"><col class="subcol"><col class="nocol"><col class="desccol"><col class="clscol"><col class="rescol"></colgroup>'+
+        '<thead><tr><th colspan="4">点　検　項　目</th><th>区分</th><th>良否</th></tr></thead><tbody>'+rightRows+'</tbody></table>'+
+        '<table class="annual">'+annualRows+'</table></div>'+
+    '</div>'+
+    /* ★ PDF補足欄ブロック ★ */
+    '<div class="remarks-section">'+
+      '<div class="remarks-title">📝 点検項目 補足・特記事項</div>'+
+      '<div class="remarks-body">'+remarksPdfHtml+'</div>'+
+    '</div>'+
+    '<div class="bottom-block">'+inspectorLineHtml+
+      '<div class="date-line"><span>点検日</span><span>令和</span><span class="dl">'+esc(inspectionDate.year)+'</span><span>年</span><span class="dl">'+esc(inspectionDate.month)+'</span><span>月</span><span class="dl">'+esc(inspectionDate.day)+'</span><span>日</span></div>'+
+    '</div>'+
+    '<div class="note">本報告書はクレーン等安全規則第3節第38条により3年間保管願います。　菱井工業株式会社</div>'+
+    '</div>'+
+    photoPageHtml+
+    '<button class="back-btn" onclick="window.close()">← 閉じる</button>'+
+    '<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},400);};</scr'+'ipt>'+
+    '</body></html>';
+  w.document.write(html);w.document.close();
+}
+
+/* ===== 設定 ===== */
+function getDefaultSettings(){
+  return{
+    addr1:"〒578-0967 大阪府東大阪市新鴻池町２番２号",
+    tel1:"TEL 072-961-1565（代）／FAX 072-963-6159",
+    addr2:"〒272-0024 千葉県浦安市港76番16号",
+    addr3:"〒810-0075 福岡市中央区港2丁目3-13"
+  };
+}
+function getSettings(){
+  var s=getDefaultSettings();
+  try{
+    var saved=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"{}");
+    Object.keys(s).forEach(function(k){if(saved[k]!==undefined)s[k]=saved[k];});
+  }catch(e){}
+  return s;
+}
+function loadSettings(){
+  var s=getSettings();
+  document.getElementById("set-addr1").value=s.addr1;
+  document.getElementById("set-tel1").value=s.tel1;
+  document.getElementById("set-addr2").value=s.addr2;
+  document.getElementById("set-addr3").value=s.addr3;
+}
+function saveSettings(){
+  localStorage.setItem(SETTINGS_KEY,JSON.stringify({addr1:document.getElementById("set-addr1").value,tel1:document.getElementById("set-tel1").value,addr2:document.getElementById("set-addr2").value,addr3:document.getElementById("set-addr3").value}));
+  alert("設定を保存しました");
+}
+function showHelp(){
+  alert("【使い方】\n\n■ 機器選択（点検項目カード上部）\n　No.1〜4：「無線機＋押釦SW」「無線機のみ」「押釦SWのみ」の3択\n　No.5〜8：「ワイヤーロープ」「チェーン」の2択\n\n■ 音声コマンド\n「5は黒」→▲　「10ばつ」→×　「12処置済」→Ⓧ　「15該当なし」→／\n「1から4まで黒」→1〜4番を▲\n「摩耗12.5」→6番の摩耗計測値 12.5mm\n\n■ 補足欄\n点検項目の補足・特記事項はPDFにも反映されます。\n\n■ PDF/印刷\nPC：PDFとして保存 → Google Driveフォルダを選択\nスマホ：PDF保存後、共有からGoogle Driveへ保存");
+}
+
+function init(){
+  updateOnlineStatus();
+  if(!document.getElementById("f-date").value)document.getElementById("f-date").value=localDateString();
+  renderTable();
+  updateSummary();
+  renderPhotoGrid();
+  renderSavedList();
+  loadSettings();
+  renderCorrectionsTable();
+  updateTawamiRatio();
+  restoreDraftIfAvailable();
+  initDraftAutosave();
+
+  var infoEl=document.getElementById("voice-support-info");
+  var noteEl=document.getElementById("voice-note");
+  var micBtn=document.getElementById("main-mic");
+  if(!SPEECH_SUPPORTED){
+    document.querySelectorAll(".voice-mini").forEach(function(b){b.classList.add("unsupported");});
+    if(micBtn)micBtn.classList.add("unsupported");
+    if(noteEl)noteEl.classList.add("show");
+    if(infoEl)infoEl.textContent="このブラウザは音声認識に対応していません。Google Chromeをお使いください。";
+  }else{
+    if(infoEl){
+      var env=IS_ANDROID?"Android "+(IS_CHROME?"Chrome OK":"Chrome推奨"):IS_IOS?"iPhone/iPad Safari":IS_CHROME?"PC Chrome":"PC";
+      infoEl.textContent="動作環境: "+env;
+    }
+    if(micBtn)micBtn.addEventListener("click",startMain);
+  }
+
+  var kubunBtn=document.getElementById("voice-kubun-btn");
+  if(kubunBtn)kubunBtn.addEventListener("click",function(){if(SPEECH_SUPPORTED)startKubunVoice();});
+  var remarksBtn=document.getElementById("voice-items-remarks-btn");
+  if(remarksBtn)remarksBtn.addEventListener("click",function(){if(SPEECH_SUPPORTED)startRemarksVoice();});
+  document.querySelectorAll(".voice-mini[data-voice]").forEach(function(b){
+    b.addEventListener("click",function(){if(SPEECH_SUPPORTED)startInputVoice(b.dataset.voice);});
+  });
+
+  var remarks=document.getElementById("f-items-remarks");
+  if(remarks)remarks.addEventListener("input",function(){state.itemsRemarks=remarks.value;});
+  document.getElementById("f-ann-span").addEventListener("input",updateTawamiRatio);
+  document.getElementById("f-ann-tawami").addEventListener("input",updateTawamiRatio);
+}
+
+if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",init);}else{init();}
+</script>
+</body>
+</html>
