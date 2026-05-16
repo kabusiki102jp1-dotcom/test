@@ -156,7 +156,12 @@ table.items input.measure-input { width: 64px; padding: 3px 5px; border: 1px sol
 .list-saved li .info .sub { font-size: 11px; color: #666; }
 .list-saved li .actions { display: flex; gap: 4px; flex-shrink: 0; }
 .list-saved li button { padding: 8px 12px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; background: #1a73e8; color: #fff; min-height: 36px; }
-.list-saved li button.del { background: #d93025; } .list-saved li button.exp { background: #34a853; }
+.list-saved li button.del { background: #d93025; } .list-saved li button.exp { background: #34a853; } .list-saved li button.copy { background: #f39c12; color: #111; }
+.customer-list { list-style: none; padding: 0; margin: 8px 0 0; max-height: 180px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px; background: #fafafa; }
+.customer-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #eee; font-size: 13px; }
+.customer-list li:last-child { border-bottom: none; }
+.customer-list .empty { color: #888; justify-content: center; }
+.customer-list button { background: #fff; color: #d93025; border: 1px solid #d93025; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
 .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
 .modal-bg.show { display: flex; }
 .modal { background: #fff; border-radius: 10px; padding: 16px; max-width: 360px; width: 100%; }
@@ -217,7 +222,15 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 
   <div class="card">
     <h2>顧客情報</h2>
-    <div class="form-row"><label>顧客名</label><input type="text" id="f-customer" placeholder="例：○○製作所" autocomplete="off" autocorrect="off" autocapitalize="off"><button class="voice-mini" data-voice="f-customer">🎤</button></div>
+    <div class="form-row"><label>顧客名</label><input type="text" id="f-customer" list="customer-datalist" placeholder="例：○○製作所" autocomplete="off" autocorrect="off" autocapitalize="off"><button class="voice-mini" data-voice="f-customer">🎤</button></div>
+    <datalist id="customer-datalist"></datalist>
+    <div class="form-row kubun-row">
+      <label>登録顧客</label>
+      <select id="customer-select" onchange="applyCustomerSelection(this.value)">
+        <option value="">― 登録顧客から選択 ―</option>
+      </select>
+      <button type="button" onclick="addCurrentCustomer()" style="background:#fff;color:#1a73e8;border:1px solid #1a73e8;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:13px;min-height:36px;">登録</button>
+    </div>
     <div class="form-row"><label>設置場所</label><input type="text" id="f-location" placeholder="工場・棟など" autocomplete="off"><button class="voice-mini" data-voice="f-location">🎤</button></div>
     <div class="form-row"><label>クレーンNo.</label><input type="text" id="f-staff" placeholder="例：1号機" autocomplete="off"><button class="voice-mini" data-voice="f-staff">🎤</button></div>
     <div class="form-row"><label>点検日</label><input type="date" id="f-date"></div>
@@ -380,6 +393,7 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 <div class="section" id="tab-saved">
   <div class="card">
     <h2>保存済みの点検記録</h2>
+    <p style="font-size:12px;color:#666;margin:0 0 10px;">複製は顧客・機器・点検者などの基本情報をコピーし、点検結果・写真・補足欄は新規用にリセットします。</p>
     <ul class="list-saved" id="saved-list"></ul>
   </div>
   <div class="toolbar">
@@ -421,6 +435,17 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
       <button onclick="addCorrection()" style="padding:6px 12px;background:#1a73e8;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;min-height:40px;">追加</button>
     </div>
     <button onclick="resetCorrections()" style="font-size:12px;padding:6px 12px;background:#fff;color:#888;border:1px solid #ccc;border-radius:4px;cursor:pointer;">デフォルトに戻す</button>
+  </div>
+  <div class="card">
+    <h2>顧客マスタ</h2>
+    <p style="font-size:12px;color:#666;margin:0 0 8px;">よく使う顧客名を登録できます。テキスト取込みは1行1顧客名、カンマ区切り、タブ区切りに対応します。</p>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+      <input type="text" id="new-customer-name" placeholder="顧客名" style="flex:1;min-width:160px;padding:6px 8px;border:1px solid #ccc;border-radius:4px;font-size:13px;">
+      <button onclick="addCustomerFromSettings()" style="padding:6px 12px;background:#1a73e8;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;min-height:40px;">追加</button>
+      <button onclick="document.getElementById('customer-import-file').click()" style="padding:6px 12px;background:#34a853;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;min-height:40px;">テキスト取込み</button>
+      <input type="file" id="customer-import-file" accept=".txt,.csv,.tsv,text/plain,text/csv" style="display:none" onchange="importCustomersText(event)">
+    </div>
+    <ul class="customer-list" id="customer-list"></ul>
   </div>
   <div class="card">
     <h2>会社情報（印刷用）</h2>
@@ -714,7 +739,7 @@ document.querySelectorAll(".tab").forEach(function(t){
     document.querySelectorAll(".section").forEach(function(x){x.classList.remove("active");});
     t.classList.add("active");document.getElementById("tab-"+t.dataset.tab).classList.add("active");
     if(t.dataset.tab==="saved")renderSavedList();
-    if(t.dataset.tab==="settings")renderCorrectionsTable();
+    if(t.dataset.tab==="settings"){renderCorrectionsTable();renderCustomerList();}
     if(t.dataset.tab==="photo")renderPhotoGrid();
   });
 });
@@ -817,6 +842,96 @@ function renderCorrectionsTable(){var tb=document.getElementById("corrections-bo
 function addCorrection(){var from=document.getElementById("new-corr-from").value.trim(),to=document.getElementById("new-corr-to").value.trim();if(!from||!to){alert("両方入力してください");return;}var list=getCorrections(),dup=list.findIndex(function(c){return c.from===from;});if(dup>=0){if(!confirm('"'+from+'"は既にあります。上書きしますか？'))return;list.splice(dup,1);}list.push({from:from,to:to});setCorrections(list);document.getElementById("new-corr-from").value="";document.getElementById("new-corr-to").value="";renderCorrectionsTable();}
 function removeCorrection(i){var l=getCorrections();l.splice(i,1);setCorrections(l);renderCorrectionsTable();}
 function resetCorrections(){if(!confirm("デフォルトに戻しますか？"))return;setCorrections(DEFAULT_VOICE_CORRECTIONS.slice());renderCorrectionsTable();}
+
+/* ===== 顧客マスタ ===== */
+var CUSTOMER_KEY="hishii_customers_v1";
+function normalizeCustomerName(name){return String(name||"").replace(/^[\s　]+|[\s　]+$/g,"");}
+function getCustomers(){try{var s=JSON.parse(localStorage.getItem(CUSTOMER_KEY)||"[]");if(Array.isArray(s))return s.map(normalizeCustomerName).filter(function(x){return x;});}catch(e){}return[];}
+function setCustomers(list){
+  var seen={};
+  var clean=list.map(normalizeCustomerName).filter(function(name){if(!name||seen[name])return false;seen[name]=true;return true;}).sort(function(a,b){return a.localeCompare(b,"ja");});
+  localStorage.setItem(CUSTOMER_KEY,JSON.stringify(clean));
+}
+function renderCustomerOptions(){
+  var customers=getCustomers();
+  var dl=document.getElementById("customer-datalist");
+  if(dl)dl.innerHTML=customers.map(function(name){return'<option value="'+escHtml(name)+'"></option>';}).join("");
+  var sel=document.getElementById("customer-select");
+  if(sel){
+    var current=sel.value;
+    sel.innerHTML='<option value="">― 登録顧客から選択 ―</option>'+customers.map(function(name){return'<option value="'+escHtml(name)+'">'+escHtml(name)+'</option>';}).join("");
+    if(customers.indexOf(current)>=0)sel.value=current;
+  }
+}
+function renderCustomerList(){
+  renderCustomerOptions();
+  var list=document.getElementById("customer-list");
+  if(!list)return;
+  var customers=getCustomers();
+  if(!customers.length){list.innerHTML='<li class="empty">登録顧客はありません</li>';return;}
+  list.innerHTML=customers.map(function(name,i){return'<li><span>'+escHtml(name)+'</span><button onclick="removeCustomer('+i+')">削除</button></li>';}).join("");
+}
+function addCustomerName(name,silent){
+  name=normalizeCustomerName(name);
+  if(!name){if(!silent)alert("顧客名を入力してください");return false;}
+  var customers=getCustomers();
+  if(customers.indexOf(name)>=0){if(!silent)alert("既に登録されています");return false;}
+  customers.push(name);setCustomers(customers);renderCustomerList();return true;
+}
+function addCurrentCustomer(){
+  var input=document.getElementById("f-customer");
+  if(addCustomerName(input?input.value:"",false))alert("顧客を登録しました");
+}
+function addCustomerFromSettings(){
+  var input=document.getElementById("new-customer-name");
+  if(addCustomerName(input?input.value:"",false)){if(input)input.value="";alert("顧客を登録しました");}
+}
+function removeCustomer(i){
+  var customers=getCustomers();
+  if(!customers[i])return;
+  if(!confirm("顧客「"+customers[i]+"」を削除しますか？"))return;
+  customers.splice(i,1);setCustomers(customers);renderCustomerList();
+}
+function applyCustomerSelection(name){
+  name=normalizeCustomerName(name);
+  if(!name)return;
+  document.getElementById("f-customer").value=name;
+  scheduleDraftSave();
+}
+function parseCustomerText(text){
+  return String(text||"").split(/\r?\n/).reduce(function(acc,line){
+    line.split(/[\t,，]/).forEach(function(part){
+      var name=normalizeCustomerName(part.replace(/^["']|["']$/g,""));
+      if(name)acc.push(name);
+    });
+    return acc;
+  },[]);
+}
+function importCustomersText(e){
+  var file=e.target.files[0];if(!file)return;
+  function finishImport(text){
+    var names=parseCustomerText(text);
+    if(!names.length){alert("取り込める顧客名がありませんでした");e.target.value="";return;}
+    var customers=getCustomers(),seen={};customers.forEach(function(name){seen[name]=true;});
+    var added=0;
+    names.forEach(function(name){if(!seen[name]){customers.push(name);seen[name]=true;added++;}});
+    setCustomers(customers);renderCustomerList();
+    alert(added+"件の顧客を取り込みました"+(names.length-added>0?"（重複 "+(names.length-added)+"件）":""));
+    e.target.value="";
+  }
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    var text=ev.target.result||"";
+    if(text.indexOf(" ")>=0){
+      var reader2=new FileReader();
+      reader2.onload=function(ev2){finishImport(ev2.target.result||"");};
+      reader2.readAsText(file,"Shift_JIS");
+    }else{
+      finishImport(text);
+    }
+  };
+  reader.readAsText(file);
+}
 
 /* ===== データ保存・読込 ===== */
 var STORAGE_KEY="hishii_records_v1",SETTINGS_KEY="hishii_settings_v1";
@@ -966,9 +1081,48 @@ function loadFormData(d){
   state.photos=Array.isArray(d.photos)?d.photos.map(function(p){return{dataUrl:p.dataUrl||"",caption:p.caption||""};}):[]; 
   var a=d.annual_data||{};
   ["makiage_zetuen","makiage_denryu","oko_zetuen","oko_denryu","soko_zetuen","soko_denryu","dengen_zetuen","tawami","span","tawami_ratio","rail_gauge","load","memo"].forEach(function(k){
-    var el=document.getElementById("f-ann-"+k.replace(/_/g,"-"));if(el&&a[k]!==undefined)el.value=a[k];
+    var el=document.getElementById("f-ann-"+k.replace(/_/g,"-"));if(el)el.value=a[k]!==undefined?a[k]:"";
   });
   renderTable();updateTawamiRatio();renderPhotoGrid();
+}
+
+function copyRecordForNew(id){
+  var r=getRecords().find(function(x){return x.id===id;});
+  if(!r)return;
+  if(!confirm("この記録の基本情報をコピーして、新しい点検入力を作成しますか？\n\n点検結果・写真・補足欄は新規用にリセットされます。"))return;
+  var copy=JSON.parse(JSON.stringify(r));
+  copy.id=null;
+  copy.saved_at=null;
+  copy.updated_at=null;
+  copy.date=localDateString();
+  copy.results={};
+  ITEMS.forEach(function(it){copy.results[it.no]="○";});
+  copy.measurements={};
+  copy.items_remarks="";
+  copy.photos=[];
+  copy.cert_check=false;
+  copy.annual_data={
+    makiage_zetuen:"",
+    makiage_denryu:"",
+    oko_zetuen:"",
+    oko_denryu:"",
+    soko_zetuen:"",
+    soko_denryu:"",
+    dengen_zetuen:"",
+    tawami:"",
+    span:"",
+    tawami_ratio:"",
+    rail_gauge:"",
+    load:"",
+    memo:""
+  };
+  loadFormData(copy);
+  clearDraft("前回記録をコピーしました。保存すると新規記録になります");
+  scheduleDraftSave();
+  document.querySelectorAll(".tab").forEach(function(t){t.classList.remove("active");});
+  document.querySelectorAll(".section").forEach(function(s){s.classList.remove("active");});
+  document.querySelector('.tab[data-tab=form]').classList.add("active");
+  document.getElementById("tab-form").classList.add("active");
 }
 
 function saveRecord(){
@@ -1008,7 +1162,7 @@ function renderSavedList(){
     var pm=r.photos&&r.photos.length?"📷"+r.photos.length+" ":"";
     return'<li><div class="info"><div class="title">'+escHtml(r.customer||"(顧客名なし)")+(r.crane_no?" /"+escHtml(r.crane_no):"")+'</div>'+
       '<div class="sub">'+escHtml(recordDate(r))+(r.staff?" / No."+escHtml(r.staff):"")+' '+escHtml(r.class_month||"")+" "+pm+'</div></div>'+
-      '<div class="actions"><button onclick="loadRecord(\''+r.id+'\')">開く</button><button class="exp" onclick="exportOne(\''+r.id+'\')">⬇</button><button class="del" onclick="deleteRecord(\''+r.id+'\')">削除</button></div></li>';
+      '<div class="actions"><button onclick="loadRecord(\''+r.id+'\')">開く</button><button class="copy" onclick="copyRecordForNew(\''+r.id+'\')">複製</button><button class="exp" onclick="exportOne(\''+r.id+'\')">⬇</button><button class="del" onclick="deleteRecord(\''+r.id+'\')">削除</button></div></li>';
   }).join("");
 }
 function loadRecord(id){var r=getRecords().find(function(x){return x.id===id;});if(!r)return;loadFormData(r);document.querySelectorAll(".tab").forEach(function(t){t.classList.remove("active");});document.querySelectorAll(".section").forEach(function(s){s.classList.remove("active");});document.querySelector('.tab[data-tab=form]').classList.add("active");document.getElementById("tab-form").classList.add("active");}
@@ -1100,12 +1254,14 @@ function printHishiiPDF(){
     ? esc(remarksText).replace(/\n/g,'<br>')
     : '（なし）';
 
+  var tawamiRatioText=v('f-ann-tawami-ratio')?'1/'+v('f-ann-tawami-ratio'):'';
   var annualRows=
     '<tr><th colspan="12" class="annual-title">年次点検の時必要に応じて記入</th></tr>'+
-    '<tr><td class="annual-label">巻上下</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(v('f-ann-makiage-zetuen'))+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+esc(v('f-ann-makiage-denryu'))+'</td><td>A</td><td>タワミ</td><td class="input-cell">'+esc(v('f-ann-tawami'))+'</td><td>mm</td></tr>'+
-    '<tr><td class="annual-label">横行</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(v('f-ann-oko-zetuen'))+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+esc(v('f-ann-oko-denryu'))+'</td><td>A</td><td>スパン</td><td class="input-cell">'+esc(v('f-ann-span'))+'</td><td>mm</td></tr>'+
+    '<tr><td class="annual-label">巻上下</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(v('f-ann-makiage-zetuen'))+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+esc(v('f-ann-makiage-denryu'))+'</td><td>A</td><td colspan="3"></td></tr>'+
+    '<tr><td class="annual-label">横行</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(v('f-ann-oko-zetuen'))+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+esc(v('f-ann-oko-denryu'))+'</td><td>A</td><td colspan="3"></td></tr>'+
     '<tr><td class="annual-label">走行</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(v('f-ann-soko-zetuen'))+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+esc(v('f-ann-soko-denryu'))+'</td><td>A</td><td>横行レールゲージ</td><td class="input-cell">'+esc(v('f-ann-rail-gauge'))+'</td><td>mm</td></tr>'+
     '<tr><td class="annual-label">電源・操作</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(v('f-ann-dengen-zetuen'))+'</td><td>MΩ</td><td colspan="4">定格荷重の表示</td><td colspan="2" class="input-cell">'+esc(v('f-ann-load'))+'</td><td>ton</td></tr>'+
+    '<tr><td class="annual-label">たわみ測定</td><td colspan="2">タワミ</td><td class="input-cell">'+esc(v('f-ann-tawami'))+'</td><td>mm</td><td colspan="2">スパン</td><td class="input-cell">'+esc(v('f-ann-span'))+'</td><td>mm</td><td>タワミ比</td><td class="input-cell">'+esc(tawamiRatioText)+'</td><td></td></tr>'+
     '<tr><td colspan="12" class="memo">【年次補足】 '+esc(v('f-ann-memo'))+'</td></tr>';
 
   var inspectorLineHtml=
@@ -1163,132 +1319,4 @@ function printHishiiPDF(){
     '.bottom-block{display:grid;grid-template-columns:1fr;align-items:end;margin-top:1.2mm;gap:1mm;}'+
     '.inspector-block{display:flex;align-items:flex-end;gap:2mm;font-size:7pt;color:#111;min-width:0;}'+
     '.inspector-label{white-space:nowrap;font-weight:700;padding-bottom:0.5mm;}'+
-    '.inspector-line{display:inline-block;width:36mm;border-bottom:1px solid #333;height:5mm;line-height:5mm;text-align:center;font-size:8pt;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}'+
-    '.date-line{display:flex;align-items:flex-end;justify-content:flex-end;gap:1.5mm;font-size:7pt;white-space:nowrap;color:#111;}'+
-    '.date-line .dl{display:inline-block;min-width:10mm;border-bottom:1px solid #333;height:5mm;line-height:5mm;text-align:center;}'+
-    '.note{text-align:center;font-size:5.7pt;margin-top:0.8mm;line-height:1;color:#333;}'+
-    '@media print{html,body{width:210mm;height:297mm;overflow:hidden;}.sheet{height:289mm;overflow:hidden;page-break-inside:avoid;}.back-btn{display:none!important;}}'+
-    '@media screen{body{background:#ccc;padding:10px;}.sheet{background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.22);padding:5mm;}.back-btn{position:fixed;top:10px;left:10px;padding:8px 20px;font-size:14px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;z-index:999;}}'+
-    '</style></head><body>'+
-    '<div class="sheet">'+
-    '<div class="top">'+
-      '<div class="customer"><span>'+esc(v('f-customer'))+'</span><span>殿</span></div>'+
-      '<div><div class="title">ホイスト・クレーン<br>点検検査記録表</div>'+
-        '<div class="checks"><span><span class="box">'+(isAnnual?'✓':'')+'</span>年次</span><span><span class="box">'+(isMonthly?'✓':'')+'</span>月例</span></div></div>'+
-      '<div class="branches">'+branchHtml+'</div>'+
-    '</div>'+
-    '<div class="info"><table class="info-table">'+
-      '<colgroup><col style="width:15.5%"><col style="width:21.5%"><col style="width:13%"><col style="width:29%"><col style="width:7%"><col style="width:7%"><col style="width:3%"><col style="width:4%"></colgroup>'+
-      '<tr><th rowspan="2">設　置　場　所</th><td rowspan="2">'+esc(v('f-location'))+'</td><th>ﾎｲｽﾄ形式</th><td>'+esc(v('f-hoist-type'))+'</td><th>今月の点検区分</th><td>'+esc(kubun)+'</td><th>クレーンNo.</th><td>'+esc(v('f-staff'))+'</td></tr>'+
-      '<tr><th>ﾎｲｽﾄ機番</th><td>'+esc(v('f-hoist-no'))+'</td><td colspan="2" rowspan="3"></td><td colspan="2" rowspan="3"></td></tr>'+
-      '<tr><th>クレーン番号</th><td>'+esc(v('f-crane-no'))+'</td><th>検　査　証　番　号</th><td>'+esc(v('f-cert-no'))+'</td></tr>'+
-      '<tr><th>クレーン種類</th><td>'+esc(v('f-crane-type'))+'</td><th>検　査　証　期　限</th><td class="center">'+esc(v('f-cert-exp'))+'</td></tr>'+
-      '<tr><th>サドル形式、機番</th><td>'+esc(v('f-saddle'))+'</td><th>ワイヤー取替履歴</th><td class="center">'+esc(v('f-wire-date'))+'</td><th>点検者</th><td colspan="3" style="font-size:8pt;font-weight:700;line-height:1.35;">'+esc(inspectorText)+'</td></tr>'+
-    '</table></div>'+
-    '<div class="legend">'+
-      '<span>（記号説明　○…良好　△…要注意　▲…要修理　×…不良　Ⓧ…処置実施　／…区分外、該当なし）</span>'+
-      '<span class="equip-note">'+equipNote+'</span>'+
-    '</div>'+
-    '<div class="main">'+
-      '<div><table class="items items-l"><colgroup><col class="catcol"><col class="subcol"><col class="nocol"><col class="desccol"><col class="clscol"><col class="rescol"></colgroup>'+
-        '<thead><tr><th colspan="4">点　検　項　目</th><th>区分</th><th>良否</th></tr></thead><tbody>'+leftRows+'</tbody></table></div>'+
-      '<div><table class="items items-r"><colgroup><col class="catcol"><col class="subcol"><col class="nocol"><col class="desccol"><col class="clscol"><col class="rescol"></colgroup>'+
-        '<thead><tr><th colspan="4">点　検　項　目</th><th>区分</th><th>良否</th></tr></thead><tbody>'+rightRows+'</tbody></table>'+
-        '<table class="annual">'+annualRows+'</table></div>'+
-    '</div>'+
-    /* ★ PDF補足欄ブロック ★ */
-    '<div class="remarks-section">'+
-      '<div class="remarks-title">📝 点検項目 補足・特記事項</div>'+
-      '<div class="remarks-body">'+remarksPdfHtml+'</div>'+
-    '</div>'+
-    '<div class="bottom-block">'+inspectorLineHtml+
-      '<div class="date-line"><span>点検日</span><span>令和</span><span class="dl">'+esc(inspectionDate.year)+'</span><span>年</span><span class="dl">'+esc(inspectionDate.month)+'</span><span>月</span><span class="dl">'+esc(inspectionDate.day)+'</span><span>日</span></div>'+
-    '</div>'+
-    '<div class="note">本報告書はクレーン等安全規則第3節第38条により3年間保管願います。　菱井工業株式会社</div>'+
-    '</div>'+
-    photoPageHtml+
-    '<button class="back-btn" onclick="window.close()">← 閉じる</button>'+
-    '<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},400);};</scr'+'ipt>'+
-    '</body></html>';
-  w.document.write(html);w.document.close();
-}
-
-/* ===== 設定 ===== */
-function getDefaultSettings(){
-  return{
-    addr1:"〒578-0967 大阪府東大阪市新鴻池町２番２号",
-    tel1:"TEL 072-961-1565（代）／FAX 072-963-6159",
-    addr2:"〒272-0024 千葉県浦安市港76番16号",
-    addr3:"〒810-0075 福岡市中央区港2丁目3-13"
-  };
-}
-function getSettings(){
-  var s=getDefaultSettings();
-  try{
-    var saved=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"{}");
-    Object.keys(s).forEach(function(k){if(saved[k]!==undefined)s[k]=saved[k];});
-  }catch(e){}
-  return s;
-}
-function loadSettings(){
-  var s=getSettings();
-  document.getElementById("set-addr1").value=s.addr1;
-  document.getElementById("set-tel1").value=s.tel1;
-  document.getElementById("set-addr2").value=s.addr2;
-  document.getElementById("set-addr3").value=s.addr3;
-}
-function saveSettings(){
-  localStorage.setItem(SETTINGS_KEY,JSON.stringify({addr1:document.getElementById("set-addr1").value,tel1:document.getElementById("set-tel1").value,addr2:document.getElementById("set-addr2").value,addr3:document.getElementById("set-addr3").value}));
-  alert("設定を保存しました");
-}
-function showHelp(){
-  alert("【使い方】\n\n■ 機器選択（点検項目カード上部）\n　No.1〜4：「無線機＋押釦SW」「無線機のみ」「押釦SWのみ」の3択\n　No.5〜8：「ワイヤーロープ」「チェーン」の2択\n\n■ 音声コマンド\n「5は黒」→▲　「10ばつ」→×　「12処置済」→Ⓧ　「15該当なし」→／\n「1から4まで黒」→1〜4番を▲\n「摩耗12.5」→6番の摩耗計測値 12.5mm\n\n■ 補足欄\n点検項目の補足・特記事項はPDFにも反映されます。\n\n■ PDF/印刷\nPC：PDFとして保存 → Google Driveフォルダを選択\nスマホ：PDF保存後、共有からGoogle Driveへ保存");
-}
-
-function init(){
-  updateOnlineStatus();
-  if(!document.getElementById("f-date").value)document.getElementById("f-date").value=localDateString();
-  renderTable();
-  updateSummary();
-  renderPhotoGrid();
-  renderSavedList();
-  loadSettings();
-  renderCorrectionsTable();
-  updateTawamiRatio();
-  restoreDraftIfAvailable();
-  initDraftAutosave();
-
-  var infoEl=document.getElementById("voice-support-info");
-  var noteEl=document.getElementById("voice-note");
-  var micBtn=document.getElementById("main-mic");
-  if(!SPEECH_SUPPORTED){
-    document.querySelectorAll(".voice-mini").forEach(function(b){b.classList.add("unsupported");});
-    if(micBtn)micBtn.classList.add("unsupported");
-    if(noteEl)noteEl.classList.add("show");
-    if(infoEl)infoEl.textContent="このブラウザは音声認識に対応していません。Google Chromeをお使いください。";
-  }else{
-    if(infoEl){
-      var env=IS_ANDROID?"Android "+(IS_CHROME?"Chrome OK":"Chrome推奨"):IS_IOS?"iPhone/iPad Safari":IS_CHROME?"PC Chrome":"PC";
-      infoEl.textContent="動作環境: "+env;
-    }
-    if(micBtn)micBtn.addEventListener("click",startMain);
-  }
-
-  var kubunBtn=document.getElementById("voice-kubun-btn");
-  if(kubunBtn)kubunBtn.addEventListener("click",function(){if(SPEECH_SUPPORTED)startKubunVoice();});
-  var remarksBtn=document.getElementById("voice-items-remarks-btn");
-  if(remarksBtn)remarksBtn.addEventListener("click",function(){if(SPEECH_SUPPORTED)startRemarksVoice();});
-  document.querySelectorAll(".voice-mini[data-voice]").forEach(function(b){
-    b.addEventListener("click",function(){if(SPEECH_SUPPORTED)startInputVoice(b.dataset.voice);});
-  });
-
-  var remarks=document.getElementById("f-items-remarks");
-  if(remarks)remarks.addEventListener("input",function(){state.itemsRemarks=remarks.value;});
-  document.getElementById("f-ann-span").addEventListener("input",updateTawamiRatio);
-  document.getElementById("f-ann-tawami").addEventListener("input",updateTawamiRatio);
-}
-
-if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",init);}else{init();}
-</script>
-</body>
-</html>
+  
