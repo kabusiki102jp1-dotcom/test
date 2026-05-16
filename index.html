@@ -1200,6 +1200,13 @@ function printHishiiPDF(){
   function v(id){var el=document.getElementById(id);return el?(el.value||''):'';}
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function labelHtml(s){return esc(s).replace(/\n/g,'<br>');}
+  function getTawamiRatioData(){
+    var sp=parseFloat(v('f-ann-span'));
+    var tw=parseFloat(v('f-ann-tawami'));
+    var ratio=(sp>0&&tw>0)?Math.round(sp/tw):parseInt(v('f-ann-tawami-ratio'),10);
+    if(!ratio||isNaN(ratio))return{ratio:"",text:"",color:"#111",label:""};
+    return{ratio:ratio,text:"1/"+ratio,color:ratio>=800?"#003f8c":"#c00000",label:ratio>=800?"基準以上":"基準未満"};
+  }
   function inspectionDateParts(){
     var m=v('f-date').match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if(!m)return{year:"",month:"",day:""};
@@ -1254,14 +1261,17 @@ function printHishiiPDF(){
     ? esc(remarksText).replace(/\n/g,'<br>')
     : '（なし）';
 
-  var tawamiRatioText=v('f-ann-tawami-ratio')?'1/'+v('f-ann-tawami-ratio'):'';
+  var tawamiRatio=getTawamiRatioData();
+  var tawamiSummaryHtml=(v('f-ann-tawami')||v('f-ann-span')||tawamiRatio.text)
+    ? '<div class="tawami-summary"><span class="ts-title">たわみ測定</span><span>タワミ <b>'+esc(v('f-ann-tawami'))+'</b> mm</span><span>スパン <b>'+esc(v('f-ann-span'))+'</b> mm</span><span>タワミ比 <b style="color:'+tawamiRatio.color+'">'+esc(tawamiRatio.text)+'</b></span>'+(tawamiRatio.label?'<span style="color:'+tawamiRatio.color+'">'+esc(tawamiRatio.label)+'</span>':'')+'</div>'
+    : '';
   var annualRows=
     '<tr><th colspan="12" class="annual-title">年次点検の時必要に応じて記入</th></tr>'+
     '<tr><td class="annual-label">巻上下</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(v('f-ann-makiage-zetuen'))+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+esc(v('f-ann-makiage-denryu'))+'</td><td>A</td><td colspan="3"></td></tr>'+
     '<tr><td class="annual-label">横行</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(v('f-ann-oko-zetuen'))+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+esc(v('f-ann-oko-denryu'))+'</td><td>A</td><td colspan="3"></td></tr>'+
     '<tr><td class="annual-label">走行</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(v('f-ann-soko-zetuen'))+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+esc(v('f-ann-soko-denryu'))+'</td><td>A</td><td>横行レールゲージ</td><td class="input-cell">'+esc(v('f-ann-rail-gauge'))+'</td><td>mm</td></tr>'+
     '<tr><td class="annual-label">電源・操作</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(v('f-ann-dengen-zetuen'))+'</td><td>MΩ</td><td colspan="4">定格荷重の表示</td><td colspan="2" class="input-cell">'+esc(v('f-ann-load'))+'</td><td>ton</td></tr>'+
-    '<tr><td class="annual-label">たわみ測定</td><td colspan="2">タワミ</td><td class="input-cell">'+esc(v('f-ann-tawami'))+'</td><td>mm</td><td colspan="2">スパン</td><td class="input-cell">'+esc(v('f-ann-span'))+'</td><td>mm</td><td>タワミ比</td><td class="input-cell">'+esc(tawamiRatioText)+'</td><td></td></tr>'+
+    '<tr><td class="annual-label">たわみ測定</td><td colspan="2">タワミ</td><td class="input-cell">'+esc(v('f-ann-tawami'))+'</td><td>mm</td><td colspan="2">スパン</td><td class="input-cell">'+esc(v('f-ann-span'))+'</td><td>mm</td><td>タワミ比</td><td class="input-cell" style="color:'+tawamiRatio.color+'">'+esc(tawamiRatio.text)+'</td><td></td></tr>'+
     '<tr><td colspan="12" class="memo">【年次補足】 '+esc(v('f-ann-memo'))+'</td></tr>';
 
   var inspectorLineHtml=
@@ -1294,6 +1304,8 @@ function printHishiiPDF(){
     '.info-table td{text-align:left;}.info-table .center{text-align:center;}'+
     '.legend{border:1px solid #333;border-bottom:none;padding:0.5mm 1mm;font-size:6.4pt;display:flex;justify-content:space-between;align-items:center;color:#111;}'+
     '.equip-note{font-size:5.8pt;color:#444;font-style:italic;}'+
+    '.tawami-summary{border:1px solid #333;border-bottom:none;background:#f5f7fb;padding:0.8mm 1mm;font-size:7pt;display:flex;gap:4mm;align-items:center;color:#111;}'+
+    '.tawami-summary .ts-title{font-weight:700;background:#e8e8e8;border:1px solid #999;padding:0.3mm 1.5mm;}'+
     '.main{display:grid;grid-template-columns:97.8mm 97.8mm;gap:1.4mm;}'+
     'table{border-collapse:collapse;width:100%;table-layout:fixed;}'+
     '.items th,.items td{border:1px solid #333;vertical-align:middle;color:#111;}'+
@@ -1308,15 +1320,4 @@ function printHishiiPDF(){
     '.cat{writing-mode:vertical-rl;text-orientation:upright;text-align:center;font-weight:700;padding:0.5mm 0;line-height:1;background:#f5f5f5;}'+
     '.sub{text-align:center;font-size:6.4pt;line-height:1.05;font-weight:600;background:#fafafa;}'+
     '.no,.cls,.res{text-align:center;font-weight:700;}.desc{line-height:1.1;}.res{font-size:8pt;}'+
-    '.annual{margin-top:0.6mm;}.annual th,.annual td{border:1px solid #333;height:4.85mm;font-size:6.35pt;text-align:center;vertical-align:middle;padding:0.1mm 0.45mm;color:#111;}'+
-    '.annual th{background:#e8e8e8;}'+
-    '.annual-title{text-align:left!important;padding-left:2mm!important;font-weight:700;background:#e8e8e8;}'+
-    '.annual-label{font-weight:700;}.input-cell{font-weight:700;}.memo{text-align:left!important;height:6mm!important;vertical-align:top!important;padding:0.5mm 0.8mm!important;}'+
-    /* ★ 補足欄スタイル ★ */
-    '.remarks-section{margin-top:1.2mm;border:1px solid #333;}'+
-    '.remarks-section .remarks-title{background:#e8e8e8;font-size:6.8pt;font-weight:700;padding:0.6mm 1.5mm;border-bottom:1px solid #333;color:#111;}'+
-    '.remarks-section .remarks-body{font-size:6.8pt;padding:1mm 1.5mm;min-height:10mm;line-height:1.6;color:#111;word-break:break-all;white-space:pre-wrap;}'+
-    '.bottom-block{display:grid;grid-template-columns:1fr;align-items:end;margin-top:1.2mm;gap:1mm;}'+
-    '.inspector-block{display:flex;align-items:flex-end;gap:2mm;font-size:7pt;color:#111;min-width:0;}'+
-    '.inspector-label{white-space:nowrap;font-weight:700;padding-bottom:0.5mm;}'+
-  
+    '.annual{margin-top:0.6mm;}.annual th,.annual td{border:1px solid #333;he
