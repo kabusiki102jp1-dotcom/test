@@ -39,8 +39,6 @@ header .menu-btn { background: rgba(255,255,255,0.2); color: #fff; border: none;
 .form-row { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto auto; gap: 8px; margin-bottom: 8px; align-items: center; }
 .form-row label { font-size: 13px; color: #555; font-weight: 500; min-width: 0; }
 .form-row input[type=text], .form-row input[type=date], .form-row input[type=number], .form-row select { width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; background: #fff; -webkit-appearance: none; appearance: none; }
-.form-row input[type=text], .form-row input[type=date], .form-row input[type=number] { font-weight: 600; color: #111; }
-.form-row input::placeholder { font-weight: 400; color: #999; }
 .form-row input:focus, .form-row select:focus { outline: 2px solid #1a73e8; border-color: #1a73e8; }
 .form-row .voice-mini { background: #1a73e8; color: #fff; border: none; width: 40px; height: 36px; padding: 0; border-radius: 6px; cursor: pointer; font-size: 18px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .form-row .voice-mini.listening { background: #d93025; animation: pulse 1.2s infinite; }
@@ -111,18 +109,6 @@ table.items input.measure-input { width: 64px; padding: 3px 5px; border: 1px sol
 .alert-list li .detail { flex: 1; }
 .alert-bg-sankaku { background: #fff8e6; } .alert-bg-shuri { background: #fdecea; }
 .alert-bg-batsu { background: #fce8e8; } .alert-bg-shochi { background: #f3eeff; }
-.customer-summary-panel { margin-top: 12px; border: 1px solid #d6e2f3; border-radius: 8px; overflow: hidden; background: #fff; }
-.customer-summary-head { display: flex; gap: 10px; align-items: center; padding: 10px 12px; background: #f6f9fe; border-bottom: 1px solid #e2e8f0; }
-.customer-summary-head .judgement { font-size: 15px; font-weight: 700; color: #111; }
-.customer-summary-head .judgement-label { flex: 0 0 auto; min-width: 82px; text-align: center; border-radius: 999px; padding: 5px 10px; color: #fff; font-size: 12px; font-weight: 700; }
-.customer-summary-head .judgement-label.good { background: #137333; }
-.customer-summary-head .judgement-label.watch { background: #b06000; }
-.customer-summary-head .judgement-label.repair { background: #b3261e; }
-.customer-summary-head .judgement-label.stop { background: #8b0000; }
-.customer-summary-body { padding: 10px 12px; font-size: 12px; color: #333; line-height: 1.55; }
-.customer-action-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-top: 8px; }
-.customer-action-grid div { border: 1px solid #e5e7eb; border-radius: 6px; padding: 7px 8px; background: #fafafa; }
-.customer-action-grid b { display: block; font-size: 10px; color: #666; margin-bottom: 2px; }
 
 /* 写真 */
 .camera-actions { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -348,7 +334,6 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
     <h2>📊 点検結果サマリー</h2>
     <div class="summary-grid" id="summary-grid"></div>
     <div id="summary-alert-area"></div>
-    <div id="customer-summary-area"></div>
   </div>
 
   <div class="card" id="annual-card">
@@ -374,6 +359,7 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
     </div>
     <div class="form-row"><label>横行レールゲージ</label><input type="number" step="any" inputmode="decimal" id="f-ann-rail-gauge"><span class="unit">mm</span><button class="voice-mini" data-voice="f-ann-rail-gauge">🎤</button></div>
     <div class="form-row"><label>定格荷重</label><input type="number" step="any" inputmode="decimal" id="f-ann-load"><span class="unit">t</span><button class="voice-mini" data-voice="f-ann-load">🎤</button></div>
+    <div class="form-row"><label>補足</label><input type="text" id="f-ann-memo" placeholder="補足事項" style="flex:1;"><button class="voice-mini" data-voice="f-ann-memo">🎤</button></div>
   </div>
 
   <div class="toolbar no-print">
@@ -644,37 +630,6 @@ ITEMS.forEach(function(it){state.results[it.no]="○";});
 function localDateString(d){d=d||new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function getColorClass(sym){return{"○":"result-maru","△":"result-sankaku","▲":"result-shuri","×":"result-batsu","Ⓧ":"result-shochi","／":"result-naashi"}[sym]||"";}
 function escHtml(s){return String(s||"").replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-function getDisplaySymbol(item){
-  var sym=state.results[item.no]||"○";
-  if(equipState.ropeMode==="chain"&&item.group==="rope"&&item.no===5)sym="／";
-  return sym;
-}
-function collectCustomerIssueItems(){
-  return ITEMS.map(function(it){
-    var lbl=getEffectiveLabel(it);
-    return{cat:lbl.cat,sub:lbl.sub,no:it.no,desc:it.desc,cls:it.cls,sym:getDisplaySymbol(it),measure:it.measure};
-  }).filter(function(it){return it.sym==="△"||it.sym==="▲"||it.sym==="×"||it.sym==="Ⓧ";})
-    .sort(function(a,b){
-      var p={"×":4,"▲":3,"△":2,"Ⓧ":1};
-      return(p[b.sym]||0)-(p[a.sym]||0)||a.no-b.no;
-    });
-}
-function getCustomerDecision(counts){
-  counts=counts||{"○":0,"△":0,"▲":0,"×":0,"Ⓧ":0,"／":0};
-  if(counts["×"]>0){
-    return{level:"stop",label:"至急対応",title:"不良箇所があります",lead:"安全確保のため、不良箇所は使用停止を含めた至急対応をおすすめします。",estimate:"必要",parts:"必要",revisit:"必要",timing:"至急",caution:"該当箇所の使用は控え、復旧後に再確認してください。"};
-  }
-  if(counts["▲"]>0){
-    return{level:"repair",label:"要修理",title:"修理・交換をおすすめします",lead:"使用状況を確認しながら、早めの修理見積と部品手配をご検討ください。",estimate:"必要",parts:"必要",revisit:"必要",timing:"早め",caution:"異音・振動・動作不良がある場合は使用を控えてください。"};
-  }
-  if(counts["△"]>0){
-    return{level:"watch",label:"要経過観察",title:"注意項目があります",lead:"現時点では経過観察とし、次回点検または早めの再確認をおすすめします。",estimate:"必要に応じて",parts:"必要に応じて",revisit:"必要に応じて",timing:"次回点検まで",caution:"状態変化があれば早めにご連絡ください。"};
-  }
-  if(counts["Ⓧ"]>0){
-    return{level:"good",label:"処置済",title:"処置済み項目があります",lead:"今回の点検で処置済みの項目があります。再発時は早めにご連絡ください。",estimate:"不要",parts:"不要",revisit:"不要",timing:"通常点検",caution:"通常通り使用できますが、再発時はご連絡ください。"};
-  }
-  return{level:"good",label:"良好",title:"使用継続可能です",lead:"今回の点検では、要注意以上の指摘事項はありません。",estimate:"不要",parts:"不要",revisit:"不要",timing:"通常点検",caution:"通常通り使用できます。"};
-}
 
 /* ===== テーブル描画 ===== */
 function renderTable(){
@@ -728,7 +683,7 @@ function setItemMeasurement(no,value){
 /* ===== サマリー ===== */
 function updateSummary(){
   var counts={"○":0,"△":0,"▲":0,"×":0,"Ⓧ":0,"／":0};
-  ITEMS.forEach(function(it){var s=getDisplaySymbol(it);if(counts[s]!==undefined)counts[s]++;});
+  ITEMS.forEach(function(it){var s=state.results[it.no]||"○";if(counts[s]!==undefined)counts[s]++;});
   var bdefs=[
     {sym:"○",label:"良好",color:"#1a8e3a",bg:"#f0faf3"},{sym:"△",label:"要注意",color:"#e67e22",bg:"#fff8e6"},
     {sym:"▲",label:"要修理",color:"#d93025",bg:"#fdecea"},{sym:"×",label:"不良",color:"#c00",bg:"#fce8e8"},
@@ -738,32 +693,15 @@ function updateSummary(){
     return'<div class="summary-badge" style="background:'+d.bg+';border-color:'+d.color+'22;">'+
       '<span class="sym" style="color:'+d.color+'">'+d.sym+'</span><span class="cnt" style="color:'+d.color+'">'+counts[d.sym]+'</span><span class="lbl">'+d.label+'</span></div>';
   }).join("");
-  var alerts=collectCustomerIssueItems();
+  var alerts=ITEMS.filter(function(it){var s=state.results[it.no];return s==="△"||s==="▲"||s==="×"||s==="Ⓧ";});
   var aa=document.getElementById("summary-alert-area");
-  var ca=document.getElementById("customer-summary-area");
-  var decision=getCustomerDecision(counts);
+  if(!alerts.length){aa.innerHTML='<p style="color:#1a8e3a;font-size:13px;text-align:center;padding:8px 0;">✅ 要注意以上の項目はありません</p>';return;}
   var bgM={"△":"alert-bg-sankaku","▲":"alert-bg-shuri","×":"alert-bg-batsu","Ⓧ":"alert-bg-shochi"};
   var cM={"△":"#e67e22","▲":"#d93025","×":"#c00","Ⓧ":"#6f42c1"};
-  if(!alerts.length){
-    aa.innerHTML='<p style="color:#1a8e3a;font-size:13px;text-align:center;padding:8px 0;">✅ 要注意以上の項目はありません</p>';
-  }else{
-    aa.innerHTML='<p style="font-size:12px;font-weight:600;color:#555;margin:0 0 6px;">要注意・不良項目一覧（'+alerts.length+'件）</p>'+
-      '<ul class="alert-list">'+alerts.map(function(it){
-        return'<li class="'+bgM[it.sym]+'"><span class="no-badge">'+it.no+'</span><span style="font-size:18px;font-weight:bold;color:'+cM[it.sym]+'">'+it.sym+'</span><span class="detail"><strong>'+it.sub+'</strong>　'+it.desc+'</span></li>';
-      }).join("")+'</ul>';
-  }
-  if(ca){
-    ca.innerHTML='<div class="customer-summary-panel">'+
-      '<div class="customer-summary-head"><span class="judgement-label '+decision.level+'">'+decision.label+'</span><span class="judgement">'+decision.title+'</span></div>'+
-      '<div class="customer-summary-body">'+escHtml(decision.lead)+
-        '<div class="customer-action-grid">'+
-          '<div><b>見積</b>'+escHtml(decision.estimate)+'</div>'+
-          '<div><b>部品手配</b>'+escHtml(decision.parts)+'</div>'+
-          '<div><b>再訪問</b>'+escHtml(decision.revisit)+'</div>'+
-        '</div>'+
-      '</div>'+
-    '</div>';
-  }
+  aa.innerHTML='<p style="font-size:12px;font-weight:600;color:#555;margin:0 0 6px;">要注意・不良項目一覧（'+alerts.length+'件）</p>'+
+    '<ul class="alert-list">'+alerts.map(function(it){var s=state.results[it.no];var lbl=getEffectiveLabel(it);
+      return'<li class="'+bgM[s]+'"><span class="no-badge">'+it.no+'</span><span style="font-size:18px;font-weight:bold;color:'+cM[s]+'">'+s+'</span><span class="detail"><strong>'+lbl.sub+'</strong>　'+it.desc+'</span></li>';
+    }).join("")+'</ul>';
 }
 
 /* ===== 写真管理 ===== */
@@ -869,11 +807,11 @@ function startRecognition(){
         var el=document.getElementById(voiceTarget);
         if(el){
           if(el.type==="number"){var norm=cleanedFinal.replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xFEE0);});var nm=norm.match(/\d+(?:\.\d+)?/);if(nm){el.value=nm[0];el.dispatchEvent(new Event("input"));}}
-          else if(voiceTarget==="f-hoist-type"){var modelText=normalizeModelVoiceText(cleanedFinal);if(modelText)el.value=(el.value?el.value:"")+modelText;}
+          else if(voiceTarget==="f-hoist-type"||voiceTarget==="f-hoist-no"){var modelText=normalizeModelVoiceText(cleanedFinal);if(modelText)el.value=(el.value?el.value:"")+modelText;}
           else{var cor2=applyVoiceCorrections(cleanedFinal.trim());el.value=(el.value?el.value+" ":"")+cor2;}
           scheduleDraftSave();
         }
-        setStatus("認識: "+final,"→ "+(voiceTarget==="f-hoist-type"?"ホイスト形式":voiceTarget)+"に入力");
+        setStatus("認識: "+final,"→ "+(voiceTarget==="f-hoist-type"?"ホイスト形式":voiceTarget==="f-hoist-no"?"ホイスト機番":voiceTarget)+"に入力");
         if(!recognition.continuous)recognition.stop();
       } else {
         parseVoiceCommand(cleanedFinal).forEach(function(c){applyCommand(c);});
@@ -914,7 +852,7 @@ function normalizeModelVoiceText(text){
     [/エー|えー|Ａ/gi,"A"],
     [/イー|いー|Ｅ/gi,"E"],
     [/エフ|えふ|Ｆ/gi,"F"],
-    [/ジー|じー|Ｇ/gi,"G"],
+    [/ジー|じー|時|Ｇ/gi,"G"],
     [/アイ|あい|Ｉ/gi,"I"],
     [/ジェー|じぇー|Ｊ/gi,"J"],
     [/エム|えむ|Ｍ/gi,"M"],
@@ -922,7 +860,7 @@ function normalizeModelVoiceText(text){
     [/オー|おー|Ｏ/gi,"O"],
     [/ピー|ぴー|Ｐ/gi,"P"],
     [/キュー|きゅー|Ｑ/gi,"Q"],
-    [/ティー|てぃー|Ｔ/gi,"T"],
+    [/ティー|てぃー|ティ|てぃ|Ｔ/gi,"T"],
     [/ユー|ゆー|Ｕ/gi,"U"],
     [/ブイ|ぶい|Ｖ/gi,"V"],
     [/ダブリュー|だぶりゅー|Ｗ/gi,"W"],
@@ -931,8 +869,10 @@ function normalizeModelVoiceText(text){
     [/ゼット|ぜっと|Ｚ/gi,"Z"]
   ];
   map.forEach(function(pair){s=s.replace(pair[0],pair[1]);});
+  s=s.replace(/ー/g,"-");                 // 文字読みに使われず残った長音記号＝「はいふん」をハイフンに
   s=s.toUpperCase().replace(/[^A-Z0-9.\-]/g,"");
-  s=s.replace(/\.{2,}/g,".").replace(/-{2,}/g,"-");
+  s=s.replace(/\.{2,}/g,".").replace(/-{2,}/g,"-").replace(/^[.\-]+|[.\-]+$/g,"");
+  s=s.replace(/[A-Z0-9.\-]/g,function(c){return String.fromCharCode(c.charCodeAt(0)+0xFEE0);}); // 数字・英字・記号を全角化
   return s;
 }
 
@@ -961,7 +901,7 @@ function applyCommand(c){
 }
 
 /* ===== 音声補正辞書 ===== */
-var DEFAULT_VOICE_CORRECTIONS=[{from:"交換",to:"鋼管"},{from:"忠蔵",to:"鋳造"},{from:"中蔵",to:"鋳造"},{from:"成功",to:"製鋼"},{from:"単蔵",to:"鍛造"},{from:"丹蔵",to:"鍛造"},{from:"探蔵",to:"鍛造"},{from:"要接",to:"溶接"},{from:"陽接",to:"溶接"},{from:"特殊鋼管",to:"特殊鋼"},{from:"製作書",to:"製作所"},{from:"製作処",to:"製作所"},{from:"工業所",to:"工業"},{from:"好感",to:"鋼管"},{from:"好管",to:"鋼管"}];
+var DEFAULT_VOICE_CORRECTIONS=[{from:"交換",to:"鋼管"},{from:"忠蔵",to:"鋳造"},{from:"中蔵",to:"鋳造"},{from:"成功",to:"製鋼"},{from:"単蔵",to:"鍛造"},{from:"丹蔵",to:"鍛造"},{from:"探蔵",to:"鍛造"},{from:"要接",to:"溶接"},{from:"陽接",to:"溶接"},{from:"特殊鋼管",to:"特殊鋼"},{from:"製作書",to:"製作所"},{from:"製作処",to:"製作所"},{from:"工業所",to:"工業"},{from:"好感",to:"鋼管"},{from:"好管",to:"鋼管"},{from:"西東",to:"西棟"},{from:"東東",to:"東棟"},{from:"北東",to:"北棟"},{from:"南東",to:"南棟"}];
 var CORRECTIONS_KEY="hishii_voice_corrections_v1";
 function getCorrections(){try{var s=JSON.parse(localStorage.getItem(CORRECTIONS_KEY));if(Array.isArray(s))return s;}catch(e){}return DEFAULT_VOICE_CORRECTIONS.slice();}
 function setCorrections(a){localStorage.setItem(CORRECTIONS_KEY,JSON.stringify(a));}
@@ -1168,7 +1108,8 @@ function collectFormData(){
       span:document.getElementById("f-ann-span").value,
       tawami_ratio:document.getElementById("f-ann-tawami-ratio").value,
       rail_gauge:document.getElementById("f-ann-rail-gauge").value,
-      load:document.getElementById("f-ann-load").value
+      load:document.getElementById("f-ann-load").value,
+      memo:document.getElementById("f-ann-memo").value
     }
   };
 }
@@ -1207,7 +1148,7 @@ function loadFormData(d){
   if(ta)ta.value=state.itemsRemarks;
   state.photos=Array.isArray(d.photos)?d.photos.map(function(p){return{dataUrl:p.dataUrl||"",caption:p.caption||""};}):[]; 
   var a=d.annual_data||{};
-  ["makiage_zetuen","makiage_denryu","oko_zetuen","oko_denryu","soko_zetuen","soko_denryu","dengen_zetuen","tawami","span","tawami_ratio","rail_gauge","load"].forEach(function(k){
+  ["makiage_zetuen","makiage_denryu","oko_zetuen","oko_denryu","soko_zetuen","soko_denryu","dengen_zetuen","tawami","span","tawami_ratio","rail_gauge","load","memo"].forEach(function(k){
     var el=document.getElementById("f-ann-"+k.replace(/_/g,"-"));if(el)el.value=a[k]!==undefined?a[k]:"";
   });
   renderTable();updateTawamiRatio();renderPhotoGrid();
@@ -1240,7 +1181,8 @@ function copyRecordForNew(id){
     span:"",
     tawami_ratio:"",
     rail_gauge:"",
-    load:""
+    load:"",
+    memo:""
   };
   loadFormData(copy);
   clearDraft("前回記録をコピーしました。保存すると新規記録になります");
@@ -1411,19 +1353,6 @@ function printHishiiPDF(mode){
   };
   function v(id){var el=document.getElementById(id);return el?(el.value||''):'';}
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-  function visualLen(s){
-    return Array.from(String(s||"")).reduce(function(n,ch){return n+(/[ -~]/.test(ch)?0.58:1);},0);
-  }
-  function fitPdfText(s,kind){
-    s=String(s==null?'':s);
-    var len=visualLen(s);
-    var cls=len<=8?'fit-short':len<=16?'fit-medium':len<=26?'fit-long':len<=38?'fit-xlong':'fit-xxlong';
-    return'<span class="fit-text '+cls+' '+(kind||'')+'">'+esc(s)+'</span>';
-  }
-  function fitPdfJoin(list,kind){
-    var text=list.filter(function(s){return String(s||'').trim()!=='';}).join(' / ');
-    return fitPdfText(text,kind);
-  }
   function labelHtml(s){return esc(s).replace(/\n/g,'<br>');}
   function pdfResultStyle(sym){
     var map={
@@ -1457,17 +1386,6 @@ function printHishiiPDF(mode){
     if(equipState.ropeMode==="wire")return{cat:"ワイヤーロープ\nチェーン／",sub:"ワイヤーロープ"};
     return{cat:"チェーン",sub:"ワイヤーロープ／"};
   }
-  function formatJpDate(s){
-    if(!s)return"";
-    var m=String(s).match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if(!m)return s;
-    var y=parseInt(m[1],10),mo=parseInt(m[2],10),d=parseInt(m[3],10);
-    var era,yr;
-    if(y>2019||(y===2019&&mo>=5)){era="令和";yr=y-2018;}
-    else if(y>1989||(y===1989&&mo>=1)){era="平成";yr=y-1988;}
-    else{era="昭和";yr=y-1925;}
-    return era+(yr===1?"元":yr)+"年"+mo+"月"+d+"日";
-  }
 
   function itemRowsPdf(list){
     var items=list.map(function(it){var lbl=getPdfLabel(it);return{cat:lbl.cat,sub:lbl.sub,no:it.no,desc:it.desc,cls:it.cls,measure:it.measure,group:it.group};});
@@ -1487,13 +1405,6 @@ function printHishiiPDF(mode){
       return html;
     }).join('');
   }
-  function customerRecommendation(sym){
-    if(sym==="×")return"使用停止を含め至急修理";
-    if(sym==="▲")return"修理・交換見積";
-    if(sym==="△")return"経過観察・次回確認";
-    if(sym==="Ⓧ")return"処置済み・再確認";
-    return"確認";
-  }
 
   var kubun=v('f-class-month');
   var inspectionDate=inspectionDateParts();
@@ -1507,31 +1418,7 @@ function printHishiiPDF(mode){
   var ropeLbl=getRopeLabel();
   var equipNote='No.1〜4: '+esc(musenLbl.sub)+'　／　No.5〜8: '+esc(ropeLbl.sub);
   var settings=getSettings();
-  var pdfCounts={"○":0,"△":0,"▲":0,"×":0,"Ⓧ":0,"／":0};
-  ITEMS.forEach(function(it){var s=getDisplaySymbol(it);if(pdfCounts[s]!==undefined)pdfCounts[s]++;});
-  var issueItems=collectCustomerIssueItems();
-  var customerDecision=getCustomerDecision(pdfCounts);
-  var visibleIssues=issueItems.slice(0,8);
-  var hiddenIssueCount=Math.max(0,issueItems.length-visibleIssues.length);
-  var statusCountsHtml=["○","△","▲","×","Ⓧ","／"].map(function(sym){
-    var label={"○":"良好","△":"要注意","▲":"要修理","×":"不良","Ⓧ":"処置済","／":"該当なし"}[sym];
-    return'<div><b>'+esc(sym)+'</b><span>'+esc(label)+'</span><strong>'+esc(pdfCounts[sym])+'</strong></div>';
-  }).join('');
-  var issueRowsHtml=visibleIssues.length?visibleIssues.map(function(it){
-    var desc=it.desc;
-    if(it.measure&&state.measurements[it.no])desc+='【測定 '+state.measurements[it.no]+'mm】';
-    return'<tr><td class="cs-no">'+esc(it.no)+'</td><td class="cs-sym">'+esc(it.sym)+'</td><td>'+esc(it.sub)+'</td><td>'+esc(desc)+'</td><td>'+esc(customerRecommendation(it.sym))+'</td></tr>';
-  }).join(''):'<tr><td colspan="5" class="cs-noissue">今回の点検では、お客様へ個別説明が必要な指摘事項はありません。</td></tr>';
-  if(hiddenIssueCount>0){
-    issueRowsHtml+='<tr><td colspan="5" class="cs-more">ほか '+esc(hiddenIssueCount)+' 件は次ページの詳細点検表をご確認ください。</td></tr>';
-  }
-  var actionRowsHtml=
-    '<tr><th>見積提出</th><td>'+esc(customerDecision.estimate)+'</td><th>部品手配</th><td>'+esc(customerDecision.parts)+'</td></tr>'+
-    '<tr><th>再訪問</th><td>'+esc(customerDecision.revisit)+'</td><th>対応目安</th><td>'+esc(customerDecision.timing)+'</td></tr>'+
-    '<tr><th>使用上の注意</th><td colspan="3">'+esc(customerDecision.caution)+'</td></tr>'+
-    '<tr><th>次回点検目安</th><td colspan="3">'+(isAnnual?'年次点検は1年後を目安に実施してください。':'月例点検は1か月後を目安に実施してください。')+'</td></tr>';
-  var HISHII_LOGO_B64="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";
-  var branchHtml='<div class="logo-safe"><img class="logo" src="data:image/png;base64,'+HISHII_LOGO_B64+'" alt="菱井工業株式会社"></div>'+
+  var branchHtml='<div class="company">菱井工業株式会社</div>'+
     esc(settings.addr1)+'<br>'+esc(settings.tel1)+'<br>'+
     esc(settings.addr2)+'<br>'+esc(settings.addr3);
 
@@ -1540,48 +1427,23 @@ function printHishiiPDF(mode){
   var remarksPdfHtml=remarksText
     ? esc(remarksText).replace(/\n/g,'<br>')
     : '（なし）';
-  var photoNotice=state.photos.length?('別紙写真 '+state.photos.length+' 枚あり'):'写真添付なし';
-  var customerSummaryPageHtml=
-    '<div class="customer-summary-page">'+
-      '<div class="cs-top">'+
-        '<div><div class="cs-customer">'+fitPdfText(v('f-customer'),'fit-customer')+' <span>御中</span></div><div class="cs-sub">ホイスト・クレーン 点検結果報告書</div></div>'+
-        '<div class="branches">'+branchHtml+'</div>'+
-      '</div>'+
-      '<div class="cs-title">点検結果報告書（お客様控え）</div>'+
-      '<table class="cs-info"><colgroup><col style="width:15%"><col style="width:35%"><col style="width:15%"><col style="width:35%"></colgroup>'+
-        '<tr><th>点検日</th><td>'+fitPdfText(formatJpDate(v('f-date')),'fit-info')+'</td><th>点検区分</th><td>'+fitPdfText(kubun,'fit-info')+'</td></tr>'+
-        '<tr><th>設置場所</th><td>'+fitPdfText(v('f-location'),'fit-info')+'</td><th>クレーンNo.</th><td>'+fitPdfText(v('f-staff')||v('f-crane-no'),'fit-info')+'</td></tr>'+
-        '<tr><th>機種・機番</th><td>'+fitPdfJoin([v('f-hoist-type'),v('f-hoist-no')],'fit-info')+'</td><th>写真</th><td>'+fitPdfText(photoNotice,'fit-info')+'</td></tr>'+
-      '</table>'+
-      '<div class="cs-judge '+customerDecision.level+'"><span>総合判定</span><b>'+esc(customerDecision.label)+'</b><strong>'+esc(customerDecision.title)+'</strong><p>'+esc(customerDecision.lead)+'</p></div>'+
-      '<div class="cs-counts">'+statusCountsHtml+'</div>'+
-      '<div class="cs-section-title">今回の主な指摘事項</div>'+
-      '<table class="cs-issues"><colgroup><col style="width:8%"><col style="width:8%"><col style="width:22%"><col style="width:42%"><col style="width:20%"></colgroup>'+
-        '<thead><tr><th>No.</th><th>記号</th><th>部位</th><th>内容</th><th>推奨対応</th></tr></thead><tbody>'+issueRowsHtml+'</tbody></table>'+
-      '<div class="cs-section-title">次に必要な対応</div>'+
-      '<table class="cs-actions">'+actionRowsHtml+'</table>'+
-      '<div class="cs-section-title">補足・特記事項</div>'+
-      '<div class="cs-remarks">'+remarksPdfHtml+'</div>'+
-      '<div class="cs-confirm"><div>□ 点検結果説明済</div><div>□ 指摘事項確認済</div><div>□ 見積希望</div><div>□ 再訪問希望</div></div>'+
-      '<div class="cs-sign"><span>お客様確認</span><i></i><span>点検者</span><i>'+fitPdfText(inspectorText,'fit-sign')+'</i></div>'+
-      '<div class="cs-note">詳細な点検項目・測定値は次ページ以降の点検検査記録表をご確認ください。</div>'+
-    '</div>';
 
   var tawamiRatio=getTawamiRatioData();
+  var tawamiSummaryHtml=(v('f-ann-tawami')||v('f-ann-span')||tawamiRatio.text)
+    ? '<div class="tawami-summary"><span class="ts-title">たわみ測定</span><span>タワミ <b>'+esc(v('f-ann-tawami'))+'</b> mm</span><span>スパン <b>'+esc(v('f-ann-span'))+'</b> mm</span><span>タワミ比 <b style="color:'+tawamiRatio.color+'">'+esc(tawamiRatio.text)+'</b></span>'+(tawamiRatio.label?'<span style="color:'+tawamiRatio.color+'">'+esc(tawamiRatio.label)+'</span>':'')+'</div>'
+    : '';
   var annualRows=
     '<tr><th colspan="12" class="annual-title">年次点検の時必要に応じて記入</th></tr>'+
-    '<tr><td class="annual-label">巻上下</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+fitPdfText(v('f-ann-makiage-zetuen'),'fit-number')+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+fitPdfText(v('f-ann-makiage-denryu'),'fit-number')+'</td><td>A</td><td colspan="3"></td></tr>'+
-    '<tr><td class="annual-label">横行</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+fitPdfText(v('f-ann-oko-zetuen'),'fit-number')+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+fitPdfText(v('f-ann-oko-denryu'),'fit-number')+'</td><td>A</td><td colspan="3"></td></tr>'+
-    '<tr><td class="annual-label">走行</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+fitPdfText(v('f-ann-soko-zetuen'),'fit-number')+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+fitPdfText(v('f-ann-soko-denryu'),'fit-number')+'</td><td>A</td><td style="font-size:5.8pt;white-space:nowrap;">横行ﾚｰﾙｹﾞｰｼﾞ</td><td class="input-cell">'+fitPdfText(v('f-ann-rail-gauge'),'fit-number')+'</td><td>mm</td></tr>'+
-    '<tr><td class="annual-label">電源・操作</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+fitPdfText(v('f-ann-dengen-zetuen'),'fit-number')+'</td><td>MΩ</td><td colspan="4">定格荷重の表示</td><td colspan="2" class="input-cell">'+fitPdfText(v('f-ann-load'),'fit-number')+'</td><td>ton</td></tr>'+
-    '<tr><td class="annual-label">たわみ測定</td><td colspan="2">タワミ</td><td class="input-cell">'+fitPdfText(v('f-ann-tawami'),'fit-number')+'</td><td>mm</td><td colspan="2">スパン</td><td class="input-cell">'+fitPdfText(v('f-ann-span'),'fit-number')+'</td><td>mm</td><td>タワミ比</td><td class="input-cell" style="color:'+tawamiRatio.color+'">'+fitPdfText(tawamiRatio.text,'fit-number')+'</td><td></td></tr>'+
-    '<tr><td colspan="12" class="memo memo-combined">'+
-      '<div class="memo-items"><b>📝 補足・特記事項</b><div class="memo-items-body">'+remarksPdfHtml+'</div></div>'+
-    '</td></tr>';
+    '<tr><td class="annual-label">巻上下</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(v('f-ann-makiage-zetuen'))+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+esc(v('f-ann-makiage-denryu'))+'</td><td>A</td><td colspan="3"></td></tr>'+
+    '<tr><td class="annual-label">横行</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(v('f-ann-oko-zetuen'))+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+esc(v('f-ann-oko-denryu'))+'</td><td>A</td><td colspan="3"></td></tr>'+
+    '<tr><td class="annual-label">走行</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(v('f-ann-soko-zetuen'))+'</td><td>MΩ</td><td colspan="2">無負荷電流</td><td class="input-cell">'+esc(v('f-ann-soko-denryu'))+'</td><td>A</td><td>横行レールゲージ</td><td class="input-cell">'+esc(v('f-ann-rail-gauge'))+'</td><td>mm</td></tr>'+
+    '<tr><td class="annual-label">電源・操作</td><td colspan="2">絶縁抵抗</td><td class="input-cell">'+esc(v('f-ann-dengen-zetuen'))+'</td><td>MΩ</td><td colspan="4">定格荷重の表示</td><td colspan="2" class="input-cell">'+esc(v('f-ann-load'))+'</td><td>ton</td></tr>'+
+    '<tr><td class="annual-label">たわみ測定</td><td colspan="2">タワミ</td><td class="input-cell">'+esc(v('f-ann-tawami'))+'</td><td>mm</td><td colspan="2">スパン</td><td class="input-cell">'+esc(v('f-ann-span'))+'</td><td>mm</td><td>タワミ比</td><td class="input-cell" style="color:'+tawamiRatio.color+'">'+esc(tawamiRatio.text)+'</td><td></td></tr>'+
+    '<tr><td colspan="12" class="memo">【年次補足】 '+esc(v('f-ann-memo'))+'</td></tr>';
 
   var inspectorLineHtml=
     '<div class="inspector-block"><span class="inspector-label">点検者</span>'+
-    inspectors.concat(['','','']).slice(0,3).map(function(s){return'<span class="inspector-line">'+fitPdfText(s,'fit-inspector')+'</span>';}).join('')+'</div>';
+    inspectors.concat(['','','']).slice(0,3).map(function(s){return'<span class="inspector-line">'+esc(s)+'</span>';}).join('')+'</div>';
 
   var photoPageHtml='';
   if(state.photos.length){
@@ -1595,44 +1457,18 @@ function printHishiiPDF(mode){
   var html='<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>菱井工業 点検検査記録表</title><style>'+
     '*{box-sizing:border-box;margin:0;padding:0;}@page{size:A4 portrait;margin:4mm;}'+
     'body{font-family:"Yu Gothic","Meiryo","Noto Sans JP",sans-serif;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'+
-    '.customer-summary-page{width:197mm;min-height:285mm;margin:0 auto;padding:0;font-size:8.6pt;line-height:1.35;page-break-after:always;}'+
-    '.cs-top{display:grid;grid-template-columns:1fr 72mm;gap:6mm;align-items:start;border-bottom:2px solid '+pdfTheme.border+';padding-bottom:3mm;margin-bottom:3mm;}'+
-    '.cs-customer{font-size:12pt;font-weight:700;border-bottom:1px solid '+pdfTheme.border+';padding:4mm 0 1.5mm;color:'+pdfTheme.accentDark+';}.cs-customer .fit-text{display:inline-block;vertical-align:baseline;max-width:calc(100% - 13mm);}.cs-customer>span:not(.fit-text){font-size:8pt;font-weight:400;margin-left:3mm;}'+
-    '.cs-sub{font-size:8pt;color:#555;margin-top:2mm;}.cs-title{text-align:center;font-size:15pt;font-weight:700;color:'+pdfTheme.accentDark+';margin:2mm 0 4mm;}'+
-    '.cs-info,.cs-issues,.cs-actions{width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:3mm;}'+
-    '.cs-info th,.cs-info td,.cs-issues th,.cs-issues td,.cs-actions th,.cs-actions td{border:1px solid '+pdfTheme.border+';padding:1.4mm 1.8mm;vertical-align:middle;}'+
-    '.cs-info th,.cs-issues th,.cs-actions th{background:'+pdfTheme.headBg+';color:'+pdfTheme.accentDark+';font-weight:700;text-align:center;}'+
-    '.fit-text{display:block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;color:#111;letter-spacing:0;line-height:1.05;}'+
-    '.fit-short{font-size:8.9pt;}.fit-medium{font-size:8.2pt;}.fit-long{font-size:7.3pt;}.fit-xlong{font-size:6.5pt;}.fit-xxlong{font-size:5.7pt;}'+
-    '.fit-customer.fit-short{font-size:13.5pt;}.fit-customer.fit-medium{font-size:12pt;}.fit-customer.fit-long{font-size:10.5pt;}.fit-customer.fit-xlong{font-size:9pt;}.fit-customer.fit-xxlong{font-size:7.8pt;}'+
-    '.fit-info.fit-short{font-size:8.8pt;}.fit-info.fit-medium{font-size:8.1pt;}.fit-info.fit-long{font-size:7.2pt;}.fit-info.fit-xlong{font-size:6.3pt;}.fit-info.fit-xxlong{font-size:5.6pt;}'+
-    '.fit-number.fit-short{font-size:7.8pt;}.fit-number.fit-medium{font-size:7.2pt;}.fit-number.fit-long{font-size:6.4pt;}.fit-number.fit-xlong,.fit-number.fit-xxlong{font-size:5.8pt;}'+
-    '.fit-inspector.fit-short{font-size:8.6pt;}.fit-inspector.fit-medium{font-size:7.6pt;}.fit-inspector.fit-long{font-size:6.6pt;}.fit-inspector.fit-xlong,.fit-inspector.fit-xxlong{font-size:5.8pt;}'+
-    '.fit-sign{line-height:7mm;text-align:center;}'+
-    '.cs-judge{display:grid;grid-template-columns:24mm 28mm 1fr;gap:2mm;align-items:center;border:2px solid '+pdfTheme.border+';padding:2.5mm 3mm;margin-bottom:3mm;background:'+pdfTheme.subBg+';}'+
-    '.cs-judge span{font-size:8pt;font-weight:700;color:'+pdfTheme.accentDark+';}.cs-judge b{display:block;text-align:center;color:#fff;border-radius:3px;padding:1.6mm 1mm;font-size:10pt;}.cs-judge strong{font-size:11pt;color:#111;}.cs-judge p{grid-column:3;font-size:8pt;color:#333;margin-top:0.5mm;}'+
-    '.cs-judge.good b{background:#137333;}.cs-judge.watch b{background:#b06000;}.cs-judge.repair b{background:#b3261e;}.cs-judge.stop b{background:#8b0000;}'+
-    '.cs-counts{display:grid;grid-template-columns:repeat(6,1fr);gap:1.5mm;margin-bottom:3mm;}.cs-counts div{border:1px solid '+pdfTheme.border+';padding:1.6mm;text-align:center;background:#fff;}.cs-counts b{display:block;font-size:12pt;}.cs-counts span{display:block;font-size:6.5pt;color:#555;}.cs-counts strong{display:block;font-size:10pt;margin-top:0.5mm;}'+
-    '.cs-section-title{font-size:9pt;font-weight:700;color:'+pdfTheme.accentDark+';border-left:4px solid '+pdfTheme.accent+';padding-left:2mm;margin:3mm 0 1.5mm;}'+
-    '.cs-issues th{font-size:7pt;}.cs-issues td{font-size:7.2pt;}.cs-no,.cs-sym{text-align:center;font-weight:700;}.cs-sym{font-size:10pt;}.cs-noissue,.cs-more{text-align:center;color:#555;background:#fafafa;}'+
-    '.cs-actions th{width:18mm;}.cs-actions td{font-size:8pt;}.cs-remarks{border:1px solid '+pdfTheme.border+';min-height:17mm;padding:2mm;font-size:7.6pt;line-height:1.55;white-space:pre-wrap;word-break:break-all;margin-bottom:3mm;}'+
-    '.cs-confirm{display:grid;grid-template-columns:repeat(4,1fr);gap:2mm;font-size:8pt;margin:2mm 0 4mm;}.cs-confirm div{border:1px solid '+pdfTheme.border+';padding:2mm;text-align:center;}'+
-    '.cs-sign{display:grid;grid-template-columns:22mm 1fr 16mm 1fr;gap:3mm;align-items:end;font-size:8pt;}.cs-sign span{font-weight:700;}.cs-sign i{display:block;border-bottom:1px solid '+pdfTheme.border+';height:7mm;text-align:center;font-style:normal;line-height:7mm;overflow:hidden;}'+
-    '.cs-note{text-align:right;font-size:6.5pt;color:#555;margin-top:4mm;}'+
     '.sheet{width:197mm;min-height:285mm;margin:0 auto;padding:0;font-size:7pt;line-height:1.1;}'+
     '.top{display:grid;grid-template-columns:1fr 68mm 1fr;align-items:start;margin-bottom:1mm;}'+
     '.customer{display:grid;grid-template-columns:1fr auto;align-items:end;gap:4mm;font-size:9pt;border-bottom:1px solid '+pdfTheme.border+';margin-top:4mm;padding-left:5mm;height:8mm;color:'+pdfTheme.accentDark+';}'+
     '.title{text-align:center;font-size:14pt;font-weight:700;margin-top:7mm;color:'+pdfTheme.accentDark+';}'+
-    '.branches{font-size:6.3pt;line-height:1.18;text-align:right;color:#111;overflow:visible;}'+
-    '.branches .logo-safe{height:9mm;display:flex;align-items:flex-end;justify-content:flex-end;margin-bottom:1mm;overflow:visible;}'+
-    '.branches .logo{height:6mm;width:auto;max-width:60mm;display:block;}'+
+    '.branches{font-size:6.3pt;line-height:1.18;text-align:right;color:#111;}'+
+    '.company{font-size:8pt;font-weight:700;line-height:1.25;color:'+pdfTheme.accentDark+';}'+
     '.checks{display:flex;gap:6mm;justify-content:center;font-size:8pt;margin-top:1mm;color:'+pdfTheme.accentDark+';}'+
     '.box{display:inline-block;width:3mm;height:3mm;border:1px solid '+pdfTheme.border+';vertical-align:-0.4mm;margin-right:1mm;text-align:center;line-height:2.8mm;font-size:6pt;color:'+pdfTheme.accent+';}'+
     '.info{margin-bottom:1mm;}.info-table{width:100%;border-collapse:collapse;table-layout:fixed;}'+
     '.info-table th,.info-table td{border:1px solid '+pdfTheme.border+';height:4.8mm;padding:0 0.8mm;vertical-align:middle;font-size:7.1pt;color:#111;}'+
     '.info-table th{text-align:center;font-weight:700;background:'+pdfTheme.headBg+';color:'+pdfTheme.accentDark+';}'+
     '.info-table td{text-align:left;}.info-table .center{text-align:center;}'+
-    '.info-table-even tr{height:5mm;}'+
     '.legend{border:1px solid '+pdfTheme.border+';border-bottom:none;padding:0.5mm 1mm;font-size:6.4pt;display:flex;justify-content:space-between;align-items:center;color:#111;background:'+pdfTheme.subBg+';}'+
     '.equip-note{font-size:5.8pt;color:#444;font-style:italic;}'+
     '.tawami-summary{border:1px solid '+pdfTheme.border+';border-bottom:none;background:'+pdfTheme.subBg+';padding:0.8mm 1mm;font-size:7pt;display:flex;gap:4mm;align-items:center;color:#111;}'+
@@ -1655,10 +1491,10 @@ function printHishiiPDF(mode){
     '.annual th{background:'+pdfTheme.headBg+';}'+
     '.annual-title{text-align:left!important;padding-left:2mm!important;font-weight:700;background:'+pdfTheme.annualBg+';color:'+pdfTheme.accentDark+';}'+
     '.annual-label{font-weight:700;}.input-cell{font-weight:700;}.memo{text-align:left!important;height:6mm!important;vertical-align:top!important;padding:0.5mm 0.8mm!important;}'+
-    /* ★ 補足欄（統合） ★ */
-    '.memo-combined{height:75mm!important;vertical-align:top!important;padding:1mm 1.5mm!important;text-align:left!important;}'+
-    '.memo-items{font-size:6.8pt;color:'+pdfTheme.accentDark+';}'+
-    '.memo-items-body{font-weight:400;color:#111;margin-top:0.8mm;font-size:6.8pt;line-height:1.55;word-break:break-all;white-space:pre-wrap;}'+
+    /* ★ 補足欄スタイル ★ */
+    '.remarks-section{margin-top:1.2mm;border:1px solid '+pdfTheme.border+';}'+
+    '.remarks-section .remarks-title{background:'+pdfTheme.remarksBg+';font-size:6.8pt;font-weight:700;padding:0.6mm 1.5mm;border-bottom:1px solid '+pdfTheme.border+';color:'+pdfTheme.accentDark+';}'+
+    '.remarks-section .remarks-body{font-size:6.8pt;padding:1mm 1.5mm;min-height:10mm;line-height:1.6;color:#111;word-break:break-all;white-space:pre-wrap;}'+
     '.bottom-block{display:grid;grid-template-columns:1fr;align-items:end;margin-top:1.2mm;gap:1mm;}'+
     '.inspector-block{display:flex;align-items:flex-end;gap:2mm;font-size:7pt;color:#111;min-width:0;}'+
     '.inspector-label{white-space:nowrap;font-weight:700;padding-bottom:0.5mm;}'+
@@ -1666,35 +1502,40 @@ function printHishiiPDF(mode){
     '.date-line{display:flex;align-items:flex-end;justify-content:flex-end;gap:1.5mm;font-size:7pt;white-space:nowrap;color:#111;}'+
     '.date-line .dl{display:inline-block;min-width:10mm;border-bottom:1px solid '+pdfTheme.border+';height:5mm;line-height:5mm;text-align:center;}'+
     '.note{text-align:center;font-size:5.7pt;margin-top:0.8mm;line-height:1;color:#333;}'+
-    '@media print{html,body{width:210mm;min-height:297mm;overflow:visible;}.customer-summary-page,.sheet{page-break-inside:avoid;}.customer-summary-page{height:289mm;overflow:hidden;}.sheet{height:289mm;overflow:hidden;}.back-btn{display:none!important;}}'+
-    '@media screen{body{background:'+pdfTheme.screenBg+';padding:10px;}.customer-summary-page,.sheet{background:'+pdfTheme.sheetBg+';box-shadow:0 2px 14px rgba(0,0,0,.22);padding:5mm;margin-bottom:10px;}.back-btn{position:fixed;top:10px;left:10px;padding:8px 20px;font-size:14px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;z-index:999;}}'+
+    '@media print{html,body{width:210mm;height:297mm;overflow:hidden;}.sheet{height:289mm;overflow:hidden;page-break-inside:avoid;}.back-btn{display:none!important;}}'+
+    '@media screen{body{background:'+pdfTheme.screenBg+';padding:10px;}.sheet{background:'+pdfTheme.sheetBg+';box-shadow:0 2px 14px rgba(0,0,0,.22);padding:5mm;}.back-btn{position:fixed;top:10px;left:10px;padding:8px 20px;font-size:14px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;z-index:999;}}'+
     '</style></head><body>'+
-    customerSummaryPageHtml+
     '<div class="sheet">'+
     '<div class="top">'+
-      '<div class="customer"><span>'+fitPdfText(v('f-customer'),'fit-info')+'</span><span>殿</span></div>'+
+      '<div class="customer"><span>'+esc(v('f-customer'))+'</span><span>殿</span></div>'+
       '<div><div class="title">ホイスト・クレーン<br>点検検査記録表</div>'+
         '<div class="checks"><span><span class="box">'+(isAnnual?'✓':'')+'</span>年次</span><span><span class="box">'+(isMonthly?'✓':'')+'</span>月例</span></div></div>'+
       '<div class="branches">'+branchHtml+'</div>'+
     '</div>'+
-    '<div class="info"><table class="info-table info-table-even">'+
-      '<colgroup><col style="width:14%"><col style="width:20%"><col style="width:12%"><col style="width:24%"><col style="width:11%"><col style="width:19%"></colgroup>'+
-      '<tr><th rowspan="2">設　置　場　所</th><td rowspan="2">'+fitPdfText(v('f-location'),'fit-info')+'</td><th>ﾎｲｽﾄ形式</th><td>'+fitPdfText(v('f-hoist-type'),'fit-info')+'</td><th>今月の点検区分</th><td style="font-weight:700;">'+fitPdfText(kubun,'fit-info')+'</td></tr>'+
-      '<tr><th>ﾎｲｽﾄ機番</th><td>'+fitPdfText(v('f-hoist-no'),'fit-info')+'</td><td colspan="2" rowspan="4"></td></tr>'+
-      '<tr><th>クレーン番号</th><td>'+fitPdfText(v('f-staff')||v('f-crane-no'),'fit-info')+'</td><th>検査証番号</th><td>'+fitPdfText(v('f-cert-no'),'fit-info')+'</td></tr>'+
-      '<tr><th>クレーン種類</th><td>'+fitPdfText(v('f-crane-type'),'fit-info')+'</td><th>検査証期限</th><td class="center">'+fitPdfText(formatJpDate(v('f-cert-exp')),'fit-info')+'</td></tr>'+
-      '<tr><th>サドル形式、機番</th><td>'+fitPdfText(v('f-saddle'),'fit-info')+'</td><th>ワイヤー取替履歴</th><td class="center">'+fitPdfText(formatJpDate(v('f-wire-date')),'fit-info')+'</td></tr>'+
+    '<div class="info"><table class="info-table">'+
+      '<colgroup><col style="width:15.5%"><col style="width:21.5%"><col style="width:13%"><col style="width:29%"><col style="width:7%"><col style="width:7%"><col style="width:3%"><col style="width:4%"></colgroup>'+
+      '<tr><th rowspan="2">設　置　場　所</th><td rowspan="2">'+esc(v('f-location'))+'</td><th>ﾎｲｽﾄ形式</th><td>'+esc(v('f-hoist-type'))+'</td><th>今月の点検区分</th><td>'+esc(kubun)+'</td><th>クレーンNo.</th><td>'+esc(v('f-staff'))+'</td></tr>'+
+      '<tr><th>ﾎｲｽﾄ機番</th><td>'+esc(v('f-hoist-no'))+'</td><td colspan="2" rowspan="3"></td><td colspan="2" rowspan="3"></td></tr>'+
+      '<tr><th>クレーン番号</th><td>'+esc(v('f-crane-no'))+'</td><th>検　査　証　番　号</th><td>'+esc(v('f-cert-no'))+'</td></tr>'+
+      '<tr><th>クレーン種類</th><td>'+esc(v('f-crane-type'))+'</td><th>検　査　証　期　限</th><td class="center">'+esc(v('f-cert-exp'))+'</td></tr>'+
+      '<tr><th>サドル形式、機番</th><td>'+esc(v('f-saddle'))+'</td><th>ワイヤー取替履歴</th><td class="center">'+esc(v('f-wire-date'))+'</td><th>点検者</th><td colspan="3" style="font-size:8pt;font-weight:700;line-height:1.35;">'+esc(inspectorText)+'</td></tr>'+
     '</table></div>'+
     '<div class="legend">'+
       '<span>（記号説明　○…良好　△…要注意　▲…要修理　×…不良　Ⓧ…処置実施　／…区分外、該当なし）</span>'+
       '<span class="equip-note">'+equipNote+'</span>'+
     '</div>'+
+    tawamiSummaryHtml+
     '<div class="main">'+
       '<div><table class="items items-l"><colgroup><col class="catcol"><col class="subcol"><col class="nocol"><col class="desccol"><col class="clscol"><col class="rescol"></colgroup>'+
         '<thead><tr><th colspan="4">点　検　項　目</th><th>区分</th><th>良否</th></tr></thead><tbody>'+leftRows+'</tbody></table></div>'+
       '<div><table class="items items-r"><colgroup><col class="catcol"><col class="subcol"><col class="nocol"><col class="desccol"><col class="clscol"><col class="rescol"></colgroup>'+
         '<thead><tr><th colspan="4">点　検　項　目</th><th>区分</th><th>良否</th></tr></thead><tbody>'+rightRows+'</tbody></table>'+
         '<table class="annual">'+annualRows+'</table></div>'+
+    '</div>'+
+    /* ★ PDF補足欄ブロック ★ */
+    '<div class="remarks-section">'+
+      '<div class="remarks-title">📝 点検項目 補足・特記事項</div>'+
+      '<div class="remarks-body">'+remarksPdfHtml+'</div>'+
     '</div>'+
     '<div class="bottom-block">'+inspectorLineHtml+
       '<div class="date-line"><span>点検日</span><span>令和</span><span class="dl">'+esc(inspectionDate.year)+'</span><span>年</span><span class="dl">'+esc(inspectionDate.month)+'</span><span>月</span><span class="dl">'+esc(inspectionDate.day)+'</span><span>日</span></div>'+
